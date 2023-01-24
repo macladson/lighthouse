@@ -184,7 +184,8 @@ where
 
     fn tree_hash_root(&self) -> Hash256 {
         let (selector, root) = match self {
-            None => (0, Hash256::zero()),
+            //None => (0, Hash256::zero()),
+            None => return Hash256::zero(),
             Some(t) => (1, t.tree_hash_root()),
         };
         mix_in_selector(&root, selector).expect("an option cannot overflow the selector")
