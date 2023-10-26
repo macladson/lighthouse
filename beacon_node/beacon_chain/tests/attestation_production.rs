@@ -4,8 +4,8 @@ use beacon_chain::block_verification_types::RpcBlock;
 use beacon_chain::test_utils::{AttestationStrategy, BeaconChainHarness, BlockStrategy};
 use beacon_chain::{StateSkipConfig, WhenSlotSkipped};
 use lazy_static::lazy_static;
-use std::sync::Arc;
 use tree_hash::TreeHash;
+use triomphe::Arc;
 use types::{AggregateSignature, EthSpec, Keypair, MainnetEthSpec, RelativeEpoch, Slot};
 
 pub const VALIDATOR_COUNT: usize = 16;

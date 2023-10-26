@@ -11,7 +11,7 @@ use slog::{crit, info, Logger};
 use slot_clock::SystemTimeSlotClock;
 use std::future::Future;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-use std::sync::Arc;
+use triomphe::Arc;
 use types::EthSpec;
 use warp::{http::Response, Filter};
 

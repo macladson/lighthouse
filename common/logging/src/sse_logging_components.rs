@@ -4,8 +4,8 @@
 use crate::async_record::AsyncRecord;
 use slog::{Drain, OwnedKVList, Record};
 use std::panic::AssertUnwindSafe;
-use std::sync::Arc;
 use tokio::sync::broadcast::Sender;
+use triomphe::Arc;
 
 /// Default log level for SSE Events.
 // NOTE: Made this a constant. Debug level seems to be pretty intense. Can make this

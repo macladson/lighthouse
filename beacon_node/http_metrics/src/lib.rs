@@ -12,6 +12,7 @@ use std::future::Future;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::PathBuf;
 use std::sync::Arc;
+use triomphe::Arc as TArc;
 use warp::{http::Response, Filter};
 
 #[derive(Debug)]
@@ -82,7 +83,7 @@ impl Default for Config {
 /// Returns an error if the server is unable to bind or there is another error during
 /// configuration.
 pub fn serve<T: BeaconChainTypes>(
-    ctx: Arc<Context<T>>,
+    ctx: TArc<Context<T>>,
     shutdown: impl Future<Output = ()> + Send + Sync + 'static,
 ) -> Result<(SocketAddr, impl Future<Output = ()>), Error> {
     let config = &ctx.config;
@@ -113,7 +114,7 @@ pub fn serve<T: BeaconChainTypes>(
     let routes = warp::get()
         .and(warp::path("metrics"))
         .map(move || inner_ctx.clone())
-        .and_then(|ctx: Arc<Context<T>>| async move {
+        .and_then(|ctx: TArc<Context<T>>| async move {
             Ok::<_, warp::Rejection>(
                 metrics::gather_prometheus_metrics(&ctx)
                     .map(|body| {

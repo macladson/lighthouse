@@ -8,9 +8,9 @@ use beacon_chain::test_utils::{
 };
 use lazy_static::lazy_static;
 use sloggers::{null::NullLoggerBuilder, Build};
-use std::sync::Arc;
 use store::{LevelDB, StoreConfig};
 use tempfile::{tempdir, TempDir};
+use triomphe::Arc;
 use types::*;
 
 pub const VALIDATOR_COUNT: usize = 24;

@@ -19,8 +19,8 @@ use std::collections::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
-use std::sync::Arc;
 use std::time::Duration;
+use triomphe::Arc;
 use types::{ChainSpec, EnrForkId, EthSpec, ForkContext, SubnetId, SyncSubnetId};
 
 pub const NETWORK_KEY_FILENAME: &str = "key";

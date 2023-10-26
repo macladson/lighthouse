@@ -111,7 +111,7 @@ error-chain = "0.12"
 ethereum-types = "0.14"
 ethereum_hashing = "1.0.0-beta.2"
 ethereum_serde_utils = "0.5"
-ethereum_ssz = "0.5"
+ethereum_ssz = "0.5.3"
 ethereum_ssz_derive = "0.5"
 ethers-core = "1"
 ethers-providers = { version = "1", default-features = false }
@@ -160,8 +160,10 @@ tempfile = "3"
 tokio = { version = "1", features = ["rt-multi-thread", "sync", "signal"] }
 tokio-stream = { version = "0.1", features = ["sync"] }
 tokio-util = { version = "0.6", features = ["codec", "compat", "time"] }
-tree_hash = "0.5"
+tree_hash = "0.5.2"
 tree_hash_derive = "0.5"
+triomphe = "0.1.9"
+#triomphe = { git = "https://github.com/macladson/triomphe", branch = "arbitrary" }
 url = "2"
 uuid = { version = "0.8", features = ["serde", "v4"] }
 # TODO update to warp 0.3.6 after released.
@@ -229,3 +231,9 @@ inherits = "release"
 lto = "fat"
 codegen-units = 1
 incremental = false
+
+[patch]
+[patch.crates-io]
+triomphe = { git = "https://github.com/macladson/triomphe", branch = "arbitrary" }
+tree_hash = { git = "https://github.com/macladson/tree_hash", branch = "triomphe" }
+ethereum_ssz = { git = "https://github.com/macladson/ethereum_ssz", branch = "triomphe" }

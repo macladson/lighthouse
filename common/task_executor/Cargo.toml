@@ -12,3 +12,4 @@ exit-future = { workspace = true }
 lazy_static = { workspace = true }
 lighthouse_metrics = { workspace = true }
 sloggers = { workspace = true }
+triomphe = { workspace = true }

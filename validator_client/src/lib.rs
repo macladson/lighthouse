@@ -54,13 +54,13 @@ use std::io::Read;
 use std::marker::PhantomData;
 use std::net::SocketAddr;
 use std::path::Path;
-use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use sync_committee_service::SyncCommitteeService;
 use tokio::{
     sync::mpsc,
     time::{sleep, Duration},
 };
+use triomphe::Arc;
 use types::{EthSpec, Hash256, PublicKeyBytes};
 use validator_store::ValidatorStore;
 

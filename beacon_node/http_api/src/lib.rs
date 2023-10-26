@@ -73,6 +73,7 @@ use tokio_stream::{
     wrappers::{errors::BroadcastStreamRecvError, BroadcastStream},
     StreamExt,
 };
+use triomphe::Arc as TArc;
 use types::{
     Attestation, AttestationData, AttestationShufflingId, AttesterSlashing, BeaconStateError,
     BlindedPayload, CommitteeCache, ConfigAndPreset, Epoch, EthSpec, ForkName, FullPayload,
@@ -120,7 +121,7 @@ pub struct Context<T: BeaconChainTypes> {
     pub config: Config,
     pub chain: Option<Arc<BeaconChain<T>>>,
     pub network_senders: Option<NetworkSenders<T::EthSpec>>,
-    pub network_globals: Option<Arc<NetworkGlobals<T::EthSpec>>>,
+    pub network_globals: Option<TArc<NetworkGlobals<T::EthSpec>>>,
     pub beacon_processor_send: Option<BeaconProcessorSend<T::EthSpec>>,
     pub eth1_service: Option<eth1::Service>,
     pub sse_logging_components: Option<SSELoggingComponents>,
@@ -294,7 +295,7 @@ pub fn prometheus_metrics() -> warp::filters::log::Log<impl Fn(warp::filters::lo
 /// Returns an error if the server is unable to bind or there is another error during
 /// configuration.
 pub fn serve<T: BeaconChainTypes>(
-    ctx: Arc<Context<T>>,
+    ctx: TArc<Context<T>>,
     shutdown: impl Future<Output = ()> + Send + Sync + 'static,
 ) -> Result<HttpServer, Error> {
     let config = ctx.config.clone();
@@ -431,7 +432,7 @@ pub fn serve<T: BeaconChainTypes>(
             .and(network_globals.clone())
             .and(chain_filter.clone())
             .and_then(
-                move |network_globals: Arc<NetworkGlobals<T::EthSpec>>,
+                move |network_globals: TArc<NetworkGlobals<T::EthSpec>>,
                       chain: Arc<BeaconChain<T>>| async move {
                     match *network_globals.sync_state.read() {
                         SyncState::SyncingFinalized { .. } => {
@@ -476,7 +477,7 @@ pub fn serve<T: BeaconChainTypes>(
     let sse_component_filter = warp::any().map(move || inner_components.clone());
 
     // Create a `warp` filter that provides access to local system information.
-    let system_info = Arc::new(RwLock::new(sysinfo::System::new()));
+    let system_info = TArc::new(RwLock::new(sysinfo::System::new()));
     {
         // grab write access for initialisation
         let mut system_info = system_info.write();
@@ -489,7 +490,7 @@ pub fn serve<T: BeaconChainTypes>(
     let system_info_filter =
         warp::any()
             .map(move || system_info.clone())
-            .map(|sysinfo: Arc<RwLock<System>>| {
+            .map(|sysinfo: TArc<RwLock<System>>| {
                 {
                     // refresh stats
                     let mut sysinfo_lock = sysinfo.write();
@@ -2704,7 +2705,7 @@ pub fn serve<T: BeaconChainTypes>(
         .and(network_globals.clone())
         .then(
             |task_spawner: TaskSpawner<T::EthSpec>,
-             network_globals: Arc<NetworkGlobals<T::EthSpec>>| {
+             network_globals: TArc<NetworkGlobals<T::EthSpec>>| {
                 task_spawner.blocking_json_task(Priority::P1, move || {
                     let enr = network_globals.local_enr();
                     let p2p_addresses = enr.multiaddr_p2p_tcp();
@@ -2760,7 +2761,7 @@ pub fn serve<T: BeaconChainTypes>(
         .and(chain_filter.clone())
         .then(
             |task_spawner: TaskSpawner<T::EthSpec>,
-             network_globals: Arc<NetworkGlobals<T::EthSpec>>,
+             network_globals: TArc<NetworkGlobals<T::EthSpec>>,
              chain: Arc<BeaconChain<T>>| {
                 async move {
                     let el_offline = if let Some(el) = &chain.execution_layer {
@@ -2811,7 +2812,7 @@ pub fn serve<T: BeaconChainTypes>(
         .and(chain_filter.clone())
         .then(
             |task_spawner: TaskSpawner<T::EthSpec>,
-             network_globals: Arc<NetworkGlobals<T::EthSpec>>,
+             network_globals: TArc<NetworkGlobals<T::EthSpec>>,
              chain: Arc<BeaconChain<T>>| {
                 async move {
                     let el_offline = if let Some(el) = &chain.execution_layer {
@@ -2860,7 +2861,7 @@ pub fn serve<T: BeaconChainTypes>(
         .then(
             |requested_peer_id: String,
              task_spawner: TaskSpawner<T::EthSpec>,
-             network_globals: Arc<NetworkGlobals<T::EthSpec>>| {
+             network_globals: TArc<NetworkGlobals<T::EthSpec>>| {
                 task_spawner.blocking_json_task(Priority::P1, move || {
                     let peer_id = PeerId::from_bytes(
                         &bs58::decode(requested_peer_id.as_str())
@@ -2916,7 +2917,7 @@ pub fn serve<T: BeaconChainTypes>(
         .then(
             |query_res: Result<api_types::PeersQuery, warp::Rejection>,
              task_spawner: TaskSpawner<T::EthSpec>,
-             network_globals: Arc<NetworkGlobals<T::EthSpec>>| {
+             network_globals: TArc<NetworkGlobals<T::EthSpec>>| {
                 task_spawner.blocking_json_task(Priority::P1, move || {
                     let query = query_res?;
                     let mut peers: Vec<api_types::PeerData> = Vec::new();
@@ -2980,7 +2981,7 @@ pub fn serve<T: BeaconChainTypes>(
         .and(network_globals.clone())
         .then(
             |task_spawner: TaskSpawner<T::EthSpec>,
-             network_globals: Arc<NetworkGlobals<T::EthSpec>>| {
+             network_globals: TArc<NetworkGlobals<T::EthSpec>>| {
                 task_spawner.blocking_json_task(Priority::P1, move || {
                     let mut connected: u64 = 0;
                     let mut connecting: u64 = 0;
@@ -4031,7 +4032,7 @@ pub fn serve<T: BeaconChainTypes>(
         .and(network_globals.clone())
         .then(
             |task_spawner: TaskSpawner<T::EthSpec>,
-             network_globals: Arc<NetworkGlobals<T::EthSpec>>| {
+             network_globals: TArc<NetworkGlobals<T::EthSpec>>| {
                 task_spawner.blocking_json_task(Priority::P0, move || {
                     Ok(api_types::GenericResponse::from(
                         network_globals.sync_state(),
@@ -4065,7 +4066,7 @@ pub fn serve<T: BeaconChainTypes>(
         .and(network_globals.clone())
         .then(
             |task_spawner: TaskSpawner<T::EthSpec>,
-             network_globals: Arc<NetworkGlobals<T::EthSpec>>| {
+             network_globals: TArc<NetworkGlobals<T::EthSpec>>| {
                 task_spawner.blocking_json_task(Priority::P1, move || {
                     Ok(network_globals
                         .peers
@@ -4089,7 +4090,7 @@ pub fn serve<T: BeaconChainTypes>(
         .and(network_globals)
         .then(
             |task_spawner: TaskSpawner<T::EthSpec>,
-             network_globals: Arc<NetworkGlobals<T::EthSpec>>| {
+             network_globals: TArc<NetworkGlobals<T::EthSpec>>| {
                 task_spawner.blocking_json_task(Priority::P1, move || {
                     Ok(network_globals
                         .peers

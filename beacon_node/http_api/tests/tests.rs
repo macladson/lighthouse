@@ -29,9 +29,9 @@ use state_processing::per_block_processing::get_expected_withdrawals;
 use state_processing::per_slot_processing;
 use state_processing::state_advance::partial_state_advance;
 use std::convert::TryInto;
-use std::sync::Arc;
 use tokio::time::Duration;
 use tree_hash::TreeHash;
+use triomphe::Arc;
 use types::application_domain::ApplicationDomain;
 use types::{
     AggregateSignature, BitList, Domain, EthSpec, ExecutionBlockHash, Hash256, Keypair,

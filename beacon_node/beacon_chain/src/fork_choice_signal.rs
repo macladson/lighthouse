@@ -4,8 +4,8 @@
 //! to the receiver that fork choice has been updated for a given slot.
 use crate::BeaconChainError;
 use parking_lot::{Condvar, Mutex};
-use std::sync::Arc;
 use std::time::Duration;
+use triomphe::Arc;
 use types::Slot;
 
 /// Sender, for use by the per-slot task timer.

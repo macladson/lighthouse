@@ -9,7 +9,7 @@ use lru::LruCache;
 use parking_lot::RwLock;
 use ssz_derive::{Decode, Encode};
 use state_processing::{BlockReplayer, ConsensusContext, StateProcessingStrategy};
-use std::sync::Arc;
+use triomphe::Arc;
 use types::{ssz_tagged_signed_beacon_block, ssz_tagged_signed_beacon_block_arc};
 use types::{BeaconState, BlindedPayload, ChainSpec, Epoch, EthSpec, Hash256, SignedBeaconBlock};
 

@@ -7,12 +7,10 @@ use state_processing::{
     eth2_genesis_time, initialize_beacon_state_from_eth1, is_valid_genesis_state,
     per_block_processing::process_operations::process_deposit, process_activations,
 };
-use std::sync::{
-    atomic::{AtomicU64, AtomicUsize, Ordering},
-    Arc,
-};
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::time::Duration;
 use tokio::time::sleep;
+use triomphe::Arc;
 use types::{BeaconState, ChainSpec, Deposit, Eth1Data, EthSpec, Hash256};
 
 /// The number of blocks that are pulled per request whilst waiting for genesis.

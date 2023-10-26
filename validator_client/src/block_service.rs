@@ -18,10 +18,10 @@ use slot_clock::SlotClock;
 use std::fmt::Debug;
 use std::future::Future;
 use std::ops::Deref;
-use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc;
 use tokio::time::sleep;
+use triomphe::Arc;
 use types::{
     AbstractExecPayload, BlindedPayload, BlockType, EthSpec, FullPayload, Graffiti, PublicKeyBytes,
     Slot,

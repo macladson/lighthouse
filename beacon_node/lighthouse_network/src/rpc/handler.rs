@@ -21,12 +21,12 @@ use smallvec::SmallVec;
 use std::{
     collections::{hash_map::Entry, VecDeque},
     pin::Pin,
-    sync::Arc,
     task::{Context, Poll},
     time::{Duration, Instant},
 };
 use tokio::time::{sleep_until, Instant as TInstant, Sleep};
 use tokio_util::time::{delay_queue, DelayQueue};
+use triomphe::Arc;
 use types::{EthSpec, ForkContext};
 
 /// The number of times to retry an outbound upgrade in the case of IO errors.

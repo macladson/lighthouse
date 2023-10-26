@@ -1,7 +1,7 @@
 use crate::block_verification_types::RpcBlock;
 use crate::data_availability_checker::AvailabilityView;
 use bls::Hash256;
-use std::sync::Arc;
+use triomphe::Arc;
 use types::blob_sidecar::FixedBlobSidecarList;
 use types::{EthSpec, SignedBeaconBlock};
 

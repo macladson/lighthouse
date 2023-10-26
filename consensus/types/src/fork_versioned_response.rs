@@ -2,7 +2,7 @@ use crate::ForkName;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::value::Value;
-use std::sync::Arc;
+use triomphe::Arc;
 
 // Deserialize is only implemented for types that implement ForkVersionDeserialize
 #[derive(Debug, PartialEq, Clone, Serialize)]

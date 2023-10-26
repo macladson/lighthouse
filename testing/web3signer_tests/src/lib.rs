@@ -33,12 +33,12 @@ mod tests {
     use std::future::Future;
     use std::path::PathBuf;
     use std::process::{Child, Command, Stdio};
-    use std::sync::Arc;
     use std::time::{Duration, Instant};
     use task_executor::TaskExecutor;
     use tempfile::{tempdir, TempDir};
     use tokio::sync::OnceCell;
     use tokio::time::sleep;
+    use triomphe::Arc;
     use types::*;
     use url::Url;
     use validator_client::{

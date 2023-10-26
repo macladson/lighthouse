@@ -12,7 +12,6 @@ use ssz::Encode;
 use ssz_types::VariableList;
 use std::io;
 use std::marker::PhantomData;
-use std::sync::Arc;
 use std::time::Duration;
 use strum::{AsRefStr, Display, EnumString, IntoStaticStr};
 use tokio_io_timeout::TimeoutStream;
@@ -20,6 +19,7 @@ use tokio_util::{
     codec::Framed,
     compat::{Compat, FuturesAsyncReadCompatExt},
 };
+use triomphe::Arc;
 use types::{
     BeaconBlock, BeaconBlockAltair, BeaconBlockBase, BeaconBlockCapella, BeaconBlockMerge,
     BlobSidecar, EmptyBlock, EthSpec, ForkContext, ForkName, Hash256, MainnetEthSpec, Signature,

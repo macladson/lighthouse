@@ -4,7 +4,7 @@ use std::ops::RangeInclusive;
 
 pub use eth2::lighthouse::Eth1Block;
 use eth2::types::Hash256;
-use std::sync::Arc;
+use triomphe::Arc;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Error {

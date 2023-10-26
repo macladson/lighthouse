@@ -4,7 +4,7 @@ use rand::SeedableRng;
 use rand_xorshift::XorShiftRng;
 use ssz_types::typenum::Unsigned;
 use std::marker::PhantomData;
-use std::sync::Arc;
+use triomphe::Arc;
 
 mod address;
 mod aggregate_signature;
@@ -85,6 +85,15 @@ where
 {
     fn random_for_test(rng: &mut impl RngCore) -> Self {
         Arc::new(U::random_for_test(rng))
+    }
+}
+
+impl<U> TestRandom for std::sync::Arc<U>
+where
+    U: TestRandom,
+{
+    fn random_for_test(rng: &mut impl RngCore) -> Self {
+        std::sync::Arc::new(U::random_for_test(rng))
     }
 }
 

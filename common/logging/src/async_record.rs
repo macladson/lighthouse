@@ -9,7 +9,7 @@ use slog::{BorrowedKV, Key, Level, OwnedKVList, Record, RecordStatic, Serializer
 use std::cell::RefCell;
 use std::fmt;
 use std::fmt::Write;
-use std::sync::Arc;
+use std::sync::Arc; // Leave as std::sync for now
 use take_mut::take;
 
 thread_local! {

@@ -31,10 +31,10 @@ use slog::{debug, error, trace, warn, Logger};
 use smallvec::SmallVec;
 use std::collections::{HashMap, VecDeque};
 use std::fmt::Debug;
-use std::sync::Arc;
 use std::time::Duration;
 use store::Hash256;
 use strum::Display;
+use triomphe::Arc;
 use types::blob_sidecar::FixedBlobSidecarList;
 use types::Slot;
 

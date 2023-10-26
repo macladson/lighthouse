@@ -12,8 +12,8 @@ mod tests {
     use slog::{o, Drain, Level, Logger};
     use sloggers::{null::NullLoggerBuilder, Build};
     use std::str::FromStr;
-    use std::sync::Arc;
     use tokio::runtime::Runtime;
+    use triomphe::Arc;
     use types::{Epoch, EthSpec, ForkName, MinimalEthSpec, SubnetId};
 
     impl<T: BeaconChainTypes> NetworkService<T> {

@@ -1,6 +1,6 @@
 use crate::EpochProcessingError;
 use safe_arith::SafeArith;
-use std::sync::Arc;
+use triomphe::Arc;
 use types::beacon_state::BeaconState;
 use types::chain_spec::ChainSpec;
 use types::eth_spec::EthSpec;

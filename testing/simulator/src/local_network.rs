@@ -6,11 +6,12 @@ use node_test_rig::{
 };
 use parking_lot::RwLock;
 use sensitive_url::SensitiveUrl;
+use std::time::Duration;
 use std::{
     ops::Deref,
     time::{SystemTime, UNIX_EPOCH},
 };
-use std::{sync::Arc, time::Duration};
+use triomphe::Arc;
 use types::{Epoch, EthSpec};
 
 const BOOTNODE_PORT: u16 = 42424;

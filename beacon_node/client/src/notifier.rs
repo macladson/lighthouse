@@ -11,6 +11,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
 use tokio::time::sleep;
+use triomphe::Arc as TArc;
 use types::*;
 
 /// Create a warning log whenever the peer count is at or below this value.
@@ -30,7 +31,7 @@ const BACKFILL_LOG_INTERVAL: u64 = 5;
 pub fn spawn_notifier<T: BeaconChainTypes>(
     executor: task_executor::TaskExecutor,
     beacon_chain: Arc<BeaconChain<T>>,
-    network: Arc<NetworkGlobals<T::EthSpec>>,
+    network: TArc<NetworkGlobals<T::EthSpec>>,
     seconds_per_slot: u64,
 ) -> Result<(), String> {
     let slot_duration = Duration::from_secs(seconds_per_slot);

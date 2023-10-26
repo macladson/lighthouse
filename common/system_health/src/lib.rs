@@ -2,8 +2,8 @@ use lighthouse_network::{types::SyncState, NetworkGlobals};
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use sysinfo::{CpuExt, DiskExt, NetworkExt, NetworksExt, System, SystemExt};
+use triomphe::Arc;
 use types::EthSpec;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

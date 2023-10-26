@@ -12,11 +12,11 @@ use lighthouse_network::NetworkConfig;
 use slog::{o, Drain, Logger};
 use sloggers::{null::NullLoggerBuilder, Build};
 use slot_clock::{SlotClock, SystemTimeSlotClock};
-use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 use store::config::StoreConfig;
 use store::{HotColdDB, MemoryStore};
 use task_executor::test_utils::TestRuntime;
+use triomphe::Arc;
 use types::{
     CommitteeIndex, Epoch, EthSpec, Hash256, MainnetEthSpec, Slot, SubnetId,
     SyncCommitteeSubscription, SyncSubnetId, ValidatorSubscription,

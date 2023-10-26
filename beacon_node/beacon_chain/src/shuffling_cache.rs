@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::Arc;
+use triomphe::Arc;
 
 use itertools::Itertools;
 use slog::{debug, Logger};

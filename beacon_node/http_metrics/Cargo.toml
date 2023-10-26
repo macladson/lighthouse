@@ -18,6 +18,7 @@ lighthouse_metrics = { workspace = true }
 lighthouse_version = { workspace = true }
 warp_utils = { workspace = true }
 malloc_utils = { workspace = true }
+triomphe = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true }

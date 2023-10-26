@@ -3,7 +3,7 @@ use bls::{PublicKey, PublicKeyBytes};
 use eth2::types::GenericResponse;
 use slog::{info, Logger};
 use slot_clock::SlotClock;
-use std::sync::Arc;
+use triomphe::Arc;
 use types::{Epoch, EthSpec, SignedVoluntaryExit, VoluntaryExit};
 
 pub async fn create_signed_voluntary_exit<T: 'static + SlotClock + Clone, E: EthSpec>(

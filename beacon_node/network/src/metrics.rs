@@ -10,8 +10,8 @@ use lighthouse_network::{
     metrics::AggregatedBandwidthSinks, peer_manager::peerdb::client::ClientKind, types::GossipKind,
     GossipTopic, Gossipsub, NetworkGlobals,
 };
-use std::sync::Arc;
 use strum::IntoEnumIterator;
+use triomphe::Arc;
 use types::EthSpec;
 
 lazy_static! {

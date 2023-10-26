@@ -29,12 +29,13 @@ use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
+use triomphe::Arc as TArc;
 use types::{BlobSidecar, EthSpec, SignedBeaconBlock};
 
 /// Handles messages from the network and routes them to the appropriate service to be handled.
 pub struct Router<T: BeaconChainTypes> {
     /// Access to the peer db and network information.
-    network_globals: Arc<NetworkGlobals<T::EthSpec>>,
+    network_globals: TArc<NetworkGlobals<T::EthSpec>>,
     /// A reference to the underlying beacon chain.
     chain: Arc<BeaconChain<T>>,
     /// A channel to the syncing thread.
@@ -85,7 +86,7 @@ impl<T: BeaconChainTypes> Router<T> {
     #[allow(clippy::too_many_arguments)]
     pub fn spawn(
         beacon_chain: Arc<BeaconChain<T>>,
-        network_globals: Arc<NetworkGlobals<T::EthSpec>>,
+        network_globals: TArc<NetworkGlobals<T::EthSpec>>,
         network_send: mpsc::UnboundedSender<NetworkMessage<T::EthSpec>>,
         executor: task_executor::TaskExecutor,
         invalid_block_storage: InvalidBlockStorage,
@@ -484,7 +485,7 @@ impl<T: BeaconChainTypes> Router<T> {
         &mut self,
         peer_id: PeerId,
         request_id: RequestId,
-        beacon_block: Option<Arc<SignedBeaconBlock<T::EthSpec>>>,
+        beacon_block: Option<TArc<SignedBeaconBlock<T::EthSpec>>>,
     ) {
         let request_id = match request_id {
             RequestId::Sync(sync_id) => match sync_id {
@@ -552,7 +553,7 @@ impl<T: BeaconChainTypes> Router<T> {
         &mut self,
         peer_id: PeerId,
         request_id: RequestId,
-        beacon_block: Option<Arc<SignedBeaconBlock<T::EthSpec>>>,
+        beacon_block: Option<TArc<SignedBeaconBlock<T::EthSpec>>>,
     ) {
         let request_id = match request_id {
             RequestId::Sync(sync_id) => match sync_id {

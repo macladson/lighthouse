@@ -10,9 +10,9 @@ use eth2::lighthouse_vc::std_types::{
 };
 use slog::{info, warn, Logger};
 use slot_clock::SlotClock;
-use std::sync::Arc;
 use task_executor::TaskExecutor;
 use tokio::runtime::Handle;
+use triomphe::Arc;
 use types::{EthSpec, PublicKeyBytes};
 use url::Url;
 use warp::Rejection;

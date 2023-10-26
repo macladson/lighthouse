@@ -13,8 +13,8 @@ use slot_clock::SlotClock;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
 use tokio::time::{sleep, sleep_until, Duration, Instant};
+use triomphe::Arc as TArc;
 use types::{
     ChainSpec, EthSpec, Hash256, PublicKeyBytes, Slot, SyncCommitteeSubscription,
     SyncContributionData, SyncDuty, SyncSelectionProof, SyncSubnetId,
@@ -23,7 +23,7 @@ use types::{
 pub const SUBSCRIPTION_LOOKAHEAD_EPOCHS: u64 = 4;
 
 pub struct SyncCommitteeService<T: SlotClock + 'static, E: EthSpec> {
-    inner: Arc<Inner<T, E>>,
+    inner: TArc<Inner<T, E>>,
 }
 
 impl<T: SlotClock + 'static, E: EthSpec> Clone for SyncCommitteeService<T, E> {
@@ -43,10 +43,10 @@ impl<T: SlotClock + 'static, E: EthSpec> Deref for SyncCommitteeService<T, E> {
 }
 
 pub struct Inner<T: SlotClock + 'static, E: EthSpec> {
-    duties_service: Arc<DutiesService<T, E>>,
-    validator_store: Arc<ValidatorStore<T, E>>,
+    duties_service: TArc<DutiesService<T, E>>,
+    validator_store: TArc<ValidatorStore<T, E>>,
     slot_clock: T,
-    beacon_nodes: Arc<BeaconNodeFallback<T, E>>,
+    beacon_nodes: TArc<BeaconNodeFallback<T, E>>,
     context: RuntimeContext<E>,
     /// Boolean to track whether the service has posted subscriptions to the BN at least once.
     ///
@@ -56,14 +56,14 @@ pub struct Inner<T: SlotClock + 'static, E: EthSpec> {
 
 impl<T: SlotClock + 'static, E: EthSpec> SyncCommitteeService<T, E> {
     pub fn new(
-        duties_service: Arc<DutiesService<T, E>>,
-        validator_store: Arc<ValidatorStore<T, E>>,
+        duties_service: TArc<DutiesService<T, E>>,
+        validator_store: TArc<ValidatorStore<T, E>>,
         slot_clock: T,
-        beacon_nodes: Arc<BeaconNodeFallback<T, E>>,
+        beacon_nodes: TArc<BeaconNodeFallback<T, E>>,
         context: RuntimeContext<E>,
     ) -> Self {
         Self {
-            inner: Arc::new(Inner {
+            inner: TArc::new(Inner {
                 duties_service,
                 validator_store,
                 slot_clock,

@@ -13,8 +13,8 @@ use sha2::{Digest, Sha256};
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::num::NonZeroU16;
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::time::Duration;
+use triomphe::Arc;
 use types::{ForkContext, ForkName};
 
 pub const DEFAULT_IPV4_ADDRESS: Ipv4Addr = Ipv4Addr::UNSPECIFIED;

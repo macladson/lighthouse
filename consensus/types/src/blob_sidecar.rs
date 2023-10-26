@@ -12,6 +12,7 @@ use ssz_derive::{Decode, Encode};
 use ssz_types::{FixedVector, VariableList};
 use std::fmt::Debug;
 use std::hash::Hash;
+//use triomphe::Arc;
 use std::sync::Arc;
 use test_random_derive::TestRandom;
 use tree_hash::TreeHash;

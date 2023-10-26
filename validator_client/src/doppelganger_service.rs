@@ -39,9 +39,9 @@ use slog::{crit, error, info, Logger};
 use slot_clock::SlotClock;
 use std::collections::{HashMap, HashSet};
 use std::future::Future;
-use std::sync::Arc;
 use task_executor::ShutdownReason;
 use tokio::time::sleep;
+use triomphe::Arc;
 use types::{Epoch, EthSpec, PublicKeyBytes, Slot};
 
 /// A wrapper around `PublicKeyBytes` which encodes information about the status of a validator

@@ -42,7 +42,8 @@ use parking_lot::{Mutex, RwLock, RwLockUpgradableReadGuard};
 use ssz::{Decode, Encode};
 use ssz_derive::{Decode, Encode};
 use ssz_types::{FixedVector, VariableList};
-use std::{collections::HashSet, sync::Arc};
+use std::collections::HashSet;
+use std::sync::Arc;
 use types::blob_sidecar::BlobIdentifier;
 use types::{BlobSidecar, ChainSpec, Epoch, EthSpec, Hash256};
 
@@ -770,7 +771,7 @@ mod test {
         db_path: &TempDir,
         spec: ChainSpec,
         log: Logger,
-    ) -> Arc<HotColdDB<E, LevelDB<E>, LevelDB<E>>> {
+    ) -> TArc<HotColdDB<E, LevelDB<E>, LevelDB<E>>> {
         let hot_path = db_path.path().join("hot_db");
         let cold_path = db_path.path().join("cold_db");
         let config = StoreConfig::default();
@@ -957,7 +958,7 @@ mod test {
         };
 
         let availability_pending_block = AvailabilityPendingExecutedBlock {
-            block: Arc::new(block),
+            block: TArc::new(block),
             import_data,
             payload_verification_outcome,
         };
@@ -969,7 +970,7 @@ mod test {
         capacity: usize,
     ) -> (
         BeaconChainHarness<DiskHarnessType<E>>,
-        Arc<OverflowLRUCache<T>>,
+        TArc<OverflowLRUCache<T>>,
         TempDir,
     )
     where
@@ -981,7 +982,7 @@ mod test {
         let harness = get_deneb_chain(log.clone(), &chain_db_path).await;
         let spec = harness.spec.clone();
         let test_store = harness.chain.store.clone();
-        let cache = Arc::new(
+        let cache = TArc::new(
             OverflowLRUCache::<T>::new(capacity, test_store, spec.clone())
                 .expect("should create cache"),
         );

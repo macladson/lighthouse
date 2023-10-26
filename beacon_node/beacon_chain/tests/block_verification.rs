@@ -20,8 +20,8 @@ use state_processing::{
     VerifyBlockRoot,
 };
 use std::marker::PhantomData;
-use std::sync::Arc;
 use tempfile::tempdir;
+use triomphe::Arc;
 use types::{test_utils::generate_deterministic_keypair, *};
 
 type E = MainnetEthSpec;

@@ -26,6 +26,7 @@ use state_processing::per_block_processing::{
 use std::sync::Arc;
 use tokio::task::JoinHandle;
 use tree_hash::TreeHash;
+use triomphe::Arc as TArc;
 use types::*;
 
 pub type PreparePayloadResult<E, Payload> =
@@ -51,14 +52,14 @@ pub enum NotifyExecutionLayer {
 /// Used to await the result of executing payload with a remote EE.
 pub struct PayloadNotifier<T: BeaconChainTypes> {
     pub chain: Arc<BeaconChain<T>>,
-    pub block: Arc<SignedBeaconBlock<T::EthSpec>>,
+    pub block: TArc<SignedBeaconBlock<T::EthSpec>>,
     payload_verification_status: Option<PayloadVerificationStatus>,
 }
 
 impl<T: BeaconChainTypes> PayloadNotifier<T> {
     pub fn new(
         chain: Arc<BeaconChain<T>>,
-        block: Arc<SignedBeaconBlock<T::EthSpec>>,
+        block: TArc<SignedBeaconBlock<T::EthSpec>>,
         state: &BeaconState<T::EthSpec>,
         notify_execution_layer: NotifyExecutionLayer,
     ) -> Result<Self, BlockError<T::EthSpec>> {

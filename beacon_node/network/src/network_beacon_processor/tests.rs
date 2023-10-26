@@ -28,9 +28,9 @@ use lru::LruCache;
 use parking_lot::Mutex;
 use slot_clock::SlotClock;
 use std::iter::Iterator;
-use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc;
+use triomphe::Arc;
 use types::blob_sidecar::FixedBlobSidecarList;
 use types::{
     Attestation, AttesterSlashing, Epoch, Hash256, MainnetEthSpec, ProposerSlashing,

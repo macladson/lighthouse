@@ -1,5 +1,5 @@
 use serde::Serialize;
-use std::sync::Arc;
+use triomphe::Arc;
 use types::{
     beacon_state::CloneConfig, AbstractExecPayload, BeaconState, EthSpec, FullPayload, Hash256,
     SignedBeaconBlock,

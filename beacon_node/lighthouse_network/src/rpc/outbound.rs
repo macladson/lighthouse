@@ -11,11 +11,11 @@ use futures::future::BoxFuture;
 use futures::prelude::{AsyncRead, AsyncWrite};
 use futures::{FutureExt, SinkExt};
 use libp2p::core::{OutboundUpgrade, UpgradeInfo};
-use std::sync::Arc;
 use tokio_util::{
     codec::Framed,
     compat::{Compat, FuturesAsyncReadCompatExt},
 };
+use triomphe::Arc;
 use types::{EthSpec, ForkContext};
 /* Outbound request */
 

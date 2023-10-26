@@ -628,7 +628,7 @@ pub mod ssz_tagged_signed_beacon_block_arc {
         use super::*;
         #[allow(unused_imports)]
         use ssz::*;
-        use std::sync::Arc;
+        use triomphe::Arc;
 
         pub fn from_ssz_bytes<E: EthSpec, Payload: AbstractExecPayload<E>>(
             bytes: &[u8],

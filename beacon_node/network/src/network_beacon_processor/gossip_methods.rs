@@ -32,6 +32,7 @@ use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use store::hot_cold_store::HotColdDBError;
 use tokio::sync::mpsc;
+use triomphe::Arc as TArc;
 use types::{
     Attestation, AttesterSlashing, EthSpec, Hash256, IndexedAttestation, LightClientFinalityUpdate,
     LightClientOptimisticUpdate, ProposerSlashing, SignedAggregateAndProof, SignedBeaconBlock,
@@ -824,7 +825,7 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
         message_id: MessageId,
         peer_id: PeerId,
         peer_client: Client,
-        block: Arc<SignedBeaconBlock<T::EthSpec>>,
+        block: TArc<SignedBeaconBlock<T::EthSpec>>,
         reprocess_tx: mpsc::Sender<ReprocessQueueMessage>,
         duplicate_cache: DuplicateCache,
         invalid_block_storage: InvalidBlockStorage,
@@ -873,7 +874,7 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
         message_id: MessageId,
         peer_id: PeerId,
         peer_client: Client,
-        block: Arc<SignedBeaconBlock<T::EthSpec>>,
+        block: TArc<SignedBeaconBlock<T::EthSpec>>,
         reprocess_tx: mpsc::Sender<ReprocessQueueMessage>,
         seen_duration: Duration,
     ) -> Option<GossipVerifiedBlock<T>> {

@@ -36,6 +36,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use timer::spawn_timer;
 use tokio::sync::oneshot;
+use triomphe::Arc as TArc;
 use types::{
     test_utils::generate_deterministic_keypairs, BeaconState, ChainSpec, EthSpec,
     ExecutionBlockHash, Hash256, SignedBeaconBlock,
@@ -66,7 +67,7 @@ pub struct ClientBuilder<T: BeaconChainTypes> {
     beacon_chain_builder: Option<BeaconChainBuilder<T>>,
     beacon_chain: Option<Arc<BeaconChain<T>>>,
     eth1_service: Option<Eth1Service>,
-    network_globals: Option<Arc<NetworkGlobals<T::EthSpec>>>,
+    network_globals: Option<TArc<NetworkGlobals<T::EthSpec>>>,
     network_senders: Option<NetworkSenders<T::EthSpec>>,
     gossipsub_registry: Option<Registry>,
     db_path: Option<PathBuf>,
@@ -440,11 +441,11 @@ where
                 let (exit_tx, exit_rx) = oneshot::channel::<()>();
                 let http_listen_opt = if self.http_api_config.enabled {
                     #[allow(clippy::type_complexity)]
-                    let ctx: Arc<
+                    let ctx: TArc<
                         http_api::Context<
                             Witness<TSlotClock, TEth1Backend, TEthSpec, THotStore, TColdStore>,
                         >,
-                    > = Arc::new(http_api::Context {
+                    > = TArc::new(http_api::Context {
                         config: self.http_api_config.clone(),
                         chain: None,
                         network_senders: None,
@@ -687,7 +688,7 @@ where
         let log = runtime_context.log().clone();
 
         let http_api_listen_addr = if self.http_api_config.enabled {
-            let ctx = Arc::new(http_api::Context {
+            let ctx = TArc::new(http_api::Context {
                 config: self.http_api_config.clone(),
                 chain: self.beacon_chain.clone(),
                 network_senders: self.network_senders.clone(),
@@ -721,7 +722,7 @@ where
         };
 
         let http_metrics_listen_addr = if self.http_metrics_config.enabled {
-            let ctx = Arc::new(http_metrics::Context {
+            let ctx = TArc::new(http_metrics::Context {
                 config: self.http_metrics_config.clone(),
                 chain: self.beacon_chain.clone(),
                 db_path: self.db_path.clone(),

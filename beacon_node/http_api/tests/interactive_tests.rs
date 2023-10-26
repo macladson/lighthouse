@@ -13,9 +13,9 @@ use state_processing::{
     per_block_processing::get_expected_withdrawals, state_advance::complete_state_advance,
 };
 use std::collections::HashMap;
-use std::sync::Arc;
 use std::time::Duration;
 use tree_hash::TreeHash;
+use triomphe::Arc;
 use types::{
     Address, Epoch, EthSpec, ExecPayload, ExecutionBlockHash, ForkName, FullPayload,
     MainnetEthSpec, MinimalEthSpec, ProposerPreparationData, Slot,

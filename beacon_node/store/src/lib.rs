@@ -40,8 +40,8 @@ pub use impls::beacon_state::StorageContainer as BeaconStateStorageContainer;
 pub use metadata::AnchorInfo;
 pub use metrics::scrape_for_metrics;
 use parking_lot::MutexGuard;
-use std::sync::Arc;
 use strum::{EnumString, IntoStaticStr};
+use triomphe::Arc as TArc;
 pub use types::*;
 
 pub type ColumnIter<'a> = Box<dyn Iterator<Item = Result<(Hash256, Vec<u8>), Error>> + 'a>;
@@ -167,7 +167,7 @@ pub trait ItemStore<E: EthSpec>: KeyValueStore<E> + Sync + Send + Sized + 'stati
 /// See also https://github.com/sigp/lighthouse/issues/692
 #[derive(Clone)]
 pub enum StoreOp<'a, E: EthSpec> {
-    PutBlock(Hash256, Arc<SignedBeaconBlock<E>>),
+    PutBlock(Hash256, TArc<SignedBeaconBlock<E>>),
     PutState(Hash256, &'a BeaconState<E>),
     PutBlobs(Hash256, BlobSidecarList<E>),
     PutStateSummary(Hash256, HotStateSummary),

@@ -4,7 +4,7 @@ use crate::json_structures::*;
 use crate::test_utils::DEFAULT_MOCK_EL_PAYLOAD_VALUE_WEI;
 use serde::{de::DeserializeOwned, Deserialize};
 use serde_json::Value as JsonValue;
-use std::sync::Arc;
+use triomphe::Arc;
 use types::{EthSpec, ForkName};
 
 pub const GENERIC_ERROR_CODE: i64 = -1234;

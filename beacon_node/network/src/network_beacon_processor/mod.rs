@@ -31,6 +31,7 @@ use task_executor::test_utils::TestRuntime;
 use task_executor::TaskExecutor;
 use tokio::sync::mpsc::{self, error::TrySendError};
 use tokio::time::{interval_at, Instant};
+use triomphe::Arc as TArc;
 use types::*;
 
 pub use sync_methods::ChainSegmentProcessId;
@@ -63,7 +64,7 @@ pub struct NetworkBeaconProcessor<T: BeaconChainTypes> {
     pub network_tx: mpsc::UnboundedSender<NetworkMessage<T::EthSpec>>,
     pub sync_tx: mpsc::UnboundedSender<SyncMessage<T::EthSpec>>,
     pub reprocess_tx: mpsc::Sender<ReprocessQueueMessage>,
-    pub network_globals: Arc<NetworkGlobals<T::EthSpec>>,
+    pub network_globals: TArc<NetworkGlobals<T::EthSpec>>,
     pub invalid_block_storage: InvalidBlockStorage,
     pub delayed_lookup_peers: Mutex<LruCache<Hash256, HashSet<PeerId>>>,
     pub executor: TaskExecutor,
@@ -177,7 +178,7 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
         message_id: MessageId,
         peer_id: PeerId,
         peer_client: Client,
-        block: Arc<SignedBeaconBlock<T::EthSpec>>,
+        block: TArc<SignedBeaconBlock<T::EthSpec>>,
         seen_timestamp: Duration,
     ) -> Result<(), Error<T::EthSpec>> {
         let processor = self.clone();
@@ -703,7 +704,7 @@ impl<E: EthSpec> NetworkBeaconProcessor<TestBeaconChainType<E>> {
     // useful for testing that messages are actually being sent to the beacon
     // processor (but not much else).
     pub fn null_for_testing(
-        network_globals: Arc<NetworkGlobals<E>>,
+        network_globals: TArc<NetworkGlobals<E>>,
     ) -> (Self, mpsc::Receiver<BeaconWorkEvent<E>>) {
         let BeaconProcessorChannels {
             beacon_processor_tx,

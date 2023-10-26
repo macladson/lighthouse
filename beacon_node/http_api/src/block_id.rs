@@ -4,7 +4,7 @@ use eth2::types::BlobIndicesQuery;
 use eth2::types::BlockId as CoreBlockId;
 use std::fmt;
 use std::str::FromStr;
-use std::sync::Arc;
+use triomphe::Arc;
 use types::{BlobSidecarList, EthSpec, Hash256, SignedBeaconBlock, SignedBlindedBeaconBlock, Slot};
 
 /// Wraps `eth2::types::BlockId` and provides a simple way to obtain a block or root for a given

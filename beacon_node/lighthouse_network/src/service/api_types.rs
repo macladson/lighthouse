@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use triomphe::Arc as TArc;
 
 use libp2p::swarm::ConnectionId;
 use types::light_client_bootstrap::LightClientBootstrap;
@@ -86,11 +87,11 @@ pub enum Response<TSpec: EthSpec> {
     /// A Status message.
     Status(StatusMessage),
     /// A response to a get BLOCKS_BY_RANGE request. A None response signals the end of the batch.
-    BlocksByRange(Option<Arc<SignedBeaconBlock<TSpec>>>),
+    BlocksByRange(Option<TArc<SignedBeaconBlock<TSpec>>>),
     /// A response to a get BLOBS_BY_RANGE request. A None response signals the end of the batch.
     BlobsByRange(Option<Arc<BlobSidecar<TSpec>>>),
     /// A response to a get BLOCKS_BY_ROOT request.
-    BlocksByRoot(Option<Arc<SignedBeaconBlock<TSpec>>>),
+    BlocksByRoot(Option<TArc<SignedBeaconBlock<TSpec>>>),
     /// A response to a get BLOBS_BY_ROOT request.
     BlobsByRoot(Option<Arc<BlobSidecar<TSpec>>>),
     /// A response to a LightClientUpdate request.

@@ -4,9 +4,9 @@ use safe_arith::ArithError;
 use serde::{Deserialize, Serialize};
 use ssz_derive::{Decode, Encode};
 use ssz_types::typenum::{U5, U6};
-use std::sync::Arc;
 use test_random_derive::TestRandom;
 use tree_hash::TreeHash;
+use triomphe::Arc;
 
 pub const FINALIZED_ROOT_INDEX: usize = 105;
 pub const CURRENT_SYNC_COMMITTEE_INDEX: usize = 54;

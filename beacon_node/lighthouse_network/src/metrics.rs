@@ -1,5 +1,5 @@
 use libp2p::bandwidth::BandwidthSinks;
-use std::sync::Arc;
+use std::sync::Arc; // leave as std::sync
 
 pub use lighthouse_metrics::*;
 

@@ -34,6 +34,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use store::{Error as StoreError, HotColdDB, ItemStore, KeyValueStoreOp};
 use task_executor::{ShutdownReason, TaskExecutor};
+use triomphe::Arc as TArc;
 use types::{
     BeaconBlock, BeaconState, ChainSpec, Checkpoint, Epoch, EthSpec, Graffiti, Hash256,
     PublicKeyBytes, Signature, SignedBeaconBlock, Slot,
@@ -373,7 +374,7 @@ where
         Ok((
             BeaconSnapshot {
                 beacon_block_root,
-                beacon_block: Arc::new(beacon_block),
+                beacon_block: TArc::new(beacon_block),
                 beacon_state,
             },
             self,
@@ -539,7 +540,7 @@ where
 
         let snapshot = BeaconSnapshot {
             beacon_block_root: weak_subj_block_root,
-            beacon_block: Arc::new(weak_subj_block),
+            beacon_block: TArc::new(weak_subj_block),
             beacon_state: weak_subj_state,
         };
 
@@ -674,7 +675,7 @@ where
         let mut validator_monitor = self
             .validator_monitor
             .ok_or("Cannot build without a validator monitor")?;
-        let head_tracker = Arc::new(self.head_tracker.unwrap_or_default());
+        let head_tracker = TArc::new(self.head_tracker.unwrap_or_default());
 
         let current_slot = if slot_clock
             .is_prior_to_genesis()
@@ -688,7 +689,7 @@ where
         let kzg = if let Some(trusted_setup) = self.trusted_setup {
             let kzg = Kzg::new_from_trusted_setup(trusted_setup)
                 .map_err(|e| format!("Failed to load trusted setup: {:?}", e))?;
-            let kzg_arc = Arc::new(kzg);
+            let kzg_arc = TArc::new(kzg);
             Some(kzg_arc)
         } else {
             None
@@ -751,7 +752,7 @@ where
 
         let mut head_snapshot = BeaconSnapshot {
             beacon_block_root: head_block_root,
-            beacon_block: Arc::new(head_block),
+            beacon_block: TArc::new(head_block),
             beacon_state: head_state,
         };
 
@@ -827,7 +828,7 @@ where
         let genesis_validators_root = head_snapshot.beacon_state.genesis_validators_root();
         let genesis_time = head_snapshot.beacon_state.genesis_time();
         let head_for_snapshot_cache = head_snapshot.clone();
-        let canonical_head = CanonicalHead::new(fork_choice, Arc::new(head_snapshot));
+        let canonical_head = CanonicalHead::new(fork_choice, TArc::new(head_snapshot));
         let shuffling_cache_size = self.chain_config.shuffling_cache_size;
 
         // Calculate the weak subjectivity point in which to backfill blocks to.
@@ -925,7 +926,7 @@ where
             slasher: self.slasher.clone(),
             validator_monitor: RwLock::new(validator_monitor),
             genesis_backfill_slot,
-            data_availability_checker: Arc::new(
+            data_availability_checker: TArc::new(
                 DataAvailabilityChecker::new(slot_clock, kzg.clone(), store, &log, self.spec)
                     .map_err(|e| format!("Error initializing DataAvailabiltyChecker: {:?}", e))?,
             ),

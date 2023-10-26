@@ -60,6 +60,7 @@ use store::{config::StoreConfig, HotColdDB, ItemStore, LevelDB, MemoryStore};
 use task_executor::TaskExecutor;
 use task_executor::{test_utils::TestRuntime, ShutdownReason};
 use tree_hash::TreeHash;
+use triomphe::Arc as TArc;
 use types::sync_selection_proof::SyncSelectionProof;
 pub use types::test_utils::generate_deterministic_keypairs;
 use types::test_utils::TestRandom;
@@ -549,7 +550,7 @@ where
             chain: Arc::new(chain),
             validator_keypairs,
             withdrawal_keypairs: self.withdrawal_keypairs,
-            shutdown_receiver: Arc::new(Mutex::new(shutdown_receiver)),
+            shutdown_receiver: TArc::new(Mutex::new(shutdown_receiver)),
             runtime: self.runtime,
             mock_execution_layer: self.mock_execution_layer,
             mock_builder: None,
@@ -603,7 +604,7 @@ pub struct BeaconChainHarness<T: BeaconChainTypes> {
 
     pub chain: Arc<BeaconChain<T>>,
     pub spec: ChainSpec,
-    pub shutdown_receiver: Arc<Mutex<Receiver<ShutdownReason>>>,
+    pub shutdown_receiver: TArc<Mutex<Receiver<ShutdownReason>>>,
     pub runtime: TestRuntime,
 
     pub mock_execution_layer: Option<MockExecutionLayer<T::EthSpec>>,
@@ -612,7 +613,7 @@ pub struct BeaconChainHarness<T: BeaconChainTypes> {
     /// Cache for blob signature because we don't need them for import, but we do need them
     /// to test gossip validation. We always make them during block production but drop them
     /// before storing them in the db.
-    pub blob_signature_cache: Arc<RwLock<HashMap<BlobSignatureKey, Signature>>>,
+    pub blob_signature_cache: TArc<RwLock<HashMap<BlobSignatureKey, Signature>>>,
 
     pub rng: Mutex<StdRng>,
 }
@@ -719,7 +720,7 @@ where
         let block = self.chain.get_blinded_block(block_root).unwrap().unwrap();
         let full_block = self.chain.store.make_full_block(block_root, block).unwrap();
         let blobs = self.chain.get_blobs(block_root).unwrap();
-        RpcBlock::new(Some(*block_root), Arc::new(full_block), Some(blobs)).unwrap()
+        RpcBlock::new(Some(*block_root), TArc::new(full_block), Some(blobs)).unwrap()
     }
 
     pub fn get_all_validators(&self) -> Vec<usize> {
@@ -1246,7 +1247,7 @@ where
         message_slot: Slot,
         relative_sync_committee: RelativeSyncCommittee,
     ) -> Vec<Vec<(SyncCommitteeMessage, usize)>> {
-        let sync_committee: Arc<SyncCommittee<E>> = match relative_sync_committee {
+        let sync_committee: TArc<SyncCommittee<E>> = match relative_sync_committee {
             RelativeSyncCommittee::Current => state
                 .current_sync_committee()
                 .expect("should be called on altair beacon state")
@@ -1471,7 +1472,7 @@ where
             .map(|(subnet_id, committee_messages)| {
                 // If there are any sync messages in this committee, create an aggregate.
                 if let Some((sync_message, subcommittee_position)) = committee_messages.first() {
-                    let sync_committee: Arc<SyncCommittee<E>> = state
+                    let sync_committee: TArc<SyncCommittee<E>> = state
                         .current_sync_committee()
                         .expect("should be called on altair beacon state")
                         .clone();
@@ -1929,7 +1930,8 @@ where
             .chain
             .process_block(
                 block_root,
-                RpcBlock::new(Some(block_root), Arc::new(block), blobs_without_signatures).unwrap(),
+                RpcBlock::new(Some(block_root), TArc::new(block), blobs_without_signatures)
+                    .unwrap(),
                 NotifyExecutionLayer::Yes,
                 || Ok(()),
             )
@@ -1959,7 +1961,8 @@ where
             .chain
             .process_block(
                 block_root,
-                RpcBlock::new(Some(block_root), Arc::new(block), blobs_without_signatures).unwrap(),
+                RpcBlock::new(Some(block_root), TArc::new(block), blobs_without_signatures)
+                    .unwrap(),
                 NotifyExecutionLayer::Yes,
                 || Ok(()),
             )

@@ -14,11 +14,9 @@ use peerdb::{client::ClientKind, BanOperation, BanResult, ScoreUpdateResult};
 use rand::seq::SliceRandom;
 use slog::{debug, error, trace, warn};
 use smallvec::SmallVec;
-use std::{
-    sync::Arc,
-    time::{Duration, Instant},
-};
+use std::time::{Duration, Instant};
 use strum::IntoEnumIterator;
+use triomphe::Arc;
 use types::{EthSpec, SyncSubnetId};
 
 pub use libp2p::core::Multiaddr;

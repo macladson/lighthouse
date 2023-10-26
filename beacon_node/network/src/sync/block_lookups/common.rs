@@ -19,6 +19,7 @@ use ssz_types::VariableList;
 use std::ops::IndexMut;
 use std::sync::Arc;
 use std::time::Duration;
+use triomphe::Arc as TArc;
 use types::blob_sidecar::{BlobIdentifier, FixedBlobSidecarList};
 use types::{BlobSidecar, EthSpec, Hash256, SignedBeaconBlock};
 
@@ -268,8 +269,8 @@ pub trait RequestState<L: Lookup, T: BeaconChainTypes> {
 
 impl<L: Lookup, T: BeaconChainTypes> RequestState<L, T> for BlockRequestState<L> {
     type RequestType = BlocksByRootRequest;
-    type ResponseType = Arc<SignedBeaconBlock<T::EthSpec>>;
-    type VerifiedResponseType = Arc<SignedBeaconBlock<T::EthSpec>>;
+    type ResponseType = TArc<SignedBeaconBlock<T::EthSpec>>;
+    type VerifiedResponseType = TArc<SignedBeaconBlock<T::EthSpec>>;
     type ReconstructedResponseType = RpcBlock<T::EthSpec>;
 
     fn new_request(&self) -> BlocksByRootRequest {
@@ -291,7 +292,7 @@ impl<L: Lookup, T: BeaconChainTypes> RequestState<L, T> for BlockRequestState<L>
         expected_block_root: Hash256,
         response: Option<Self::ResponseType>,
         peer_id: PeerShouldHave,
-    ) -> Result<Option<Arc<SignedBeaconBlock<T::EthSpec>>>, LookupVerifyError> {
+    ) -> Result<Option<TArc<SignedBeaconBlock<T::EthSpec>>>, LookupVerifyError> {
         match response {
             Some(block) => {
                 // Compute the block root using this specific function so that we can get timing
@@ -321,12 +322,12 @@ impl<L: Lookup, T: BeaconChainTypes> RequestState<L, T> for BlockRequestState<L>
         }
     }
 
-    fn get_parent_root(verified_response: &Arc<SignedBeaconBlock<T::EthSpec>>) -> Option<Hash256> {
+    fn get_parent_root(verified_response: &TArc<SignedBeaconBlock<T::EthSpec>>) -> Option<Hash256> {
         Some(verified_response.parent_root())
     }
 
     fn add_to_child_components(
-        verified_response: Arc<SignedBeaconBlock<T::EthSpec>>,
+        verified_response: TArc<SignedBeaconBlock<T::EthSpec>>,
         components: &mut ChildComponents<T::EthSpec>,
     ) {
         components.merge_block(verified_response);
@@ -334,7 +335,7 @@ impl<L: Lookup, T: BeaconChainTypes> RequestState<L, T> for BlockRequestState<L>
 
     fn verified_to_reconstructed(
         block_root: Hash256,
-        block: Arc<SignedBeaconBlock<T::EthSpec>>,
+        block: TArc<SignedBeaconBlock<T::EthSpec>>,
     ) -> RpcBlock<T::EthSpec> {
         RpcBlock::new_without_blobs(Some(block_root), block)
     }

@@ -4,7 +4,7 @@ use criterion::Criterion;
 use criterion::{black_box, criterion_group, criterion_main, Benchmark};
 use rayon::prelude::*;
 use ssz::Encode;
-use std::sync::Arc;
+use triomphe::Arc;
 use types::{
     test_utils::generate_deterministic_keypair, BeaconState, Epoch, Eth1Data, EthSpec, Hash256,
     MainnetEthSpec, Validator,

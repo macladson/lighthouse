@@ -1,8 +1,8 @@
 use crate::BeaconSnapshot;
 use itertools::process_results;
 use std::cmp;
-use std::sync::Arc;
 use std::time::Duration;
+use triomphe::Arc;
 use types::{
     beacon_state::CloneConfig, BeaconState, BlindedPayload, ChainSpec, Epoch, EthSpec, Hash256,
     SignedBeaconBlock, Slot,

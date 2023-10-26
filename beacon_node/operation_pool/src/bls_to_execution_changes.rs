@@ -1,6 +1,6 @@
 use state_processing::SigVerifiedOp;
 use std::collections::{hash_map::Entry, HashMap, HashSet};
-use std::sync::Arc;
+use triomphe::Arc;
 use types::{
     AbstractExecPayload, BeaconState, ChainSpec, EthSpec, SignedBeaconBlock,
     SignedBlsToExecutionChange,

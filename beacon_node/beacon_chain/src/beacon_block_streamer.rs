@@ -10,6 +10,7 @@ use tokio::sync::{
     RwLock,
 };
 use tokio_stream::{wrappers::UnboundedReceiverStream, Stream};
+use triomphe::Arc as TArc;
 use types::{
     ChainSpec, EthSpec, ExecPayload, ExecutionBlockHash, ForkName, Hash256, SignedBeaconBlock,
     SignedBlindedBeaconBlock, Slot,
@@ -36,15 +37,15 @@ const BLOCKS_PER_RANGE_REQUEST: u64 = 32;
 
 // This is the same as a DatabaseBlock but the Arc allows us to avoid an unnecessary clone.
 enum LoadedBeaconBlock<E: EthSpec> {
-    Full(Arc<SignedBeaconBlock<E>>),
+    Full(TArc<SignedBeaconBlock<E>>),
     Blinded(Box<SignedBlindedBeaconBlock<E>>),
 }
 type LoadResult<E> = Result<Option<LoadedBeaconBlock<E>>, BeaconChainError>;
-type BlockResult<E> = Result<Option<Arc<SignedBeaconBlock<E>>>, BeaconChainError>;
+type BlockResult<E> = Result<Option<TArc<SignedBeaconBlock<E>>>, BeaconChainError>;
 
 enum RequestState<E: EthSpec> {
     UnSent(Vec<BlockParts<E>>),
-    Sent(HashMap<Hash256, Arc<BlockResult<E>>>),
+    Sent(HashMap<Hash256, TArc<BlockResult<E>>>),
 }
 
 struct BodiesByRange<E: EthSpec> {
@@ -112,7 +113,7 @@ fn reconstruct_default_header_block<E: EthSpec>(
         blinded_block
             .try_into_full_block(Some(payload))
             .ok_or(BeaconChainError::AddPayloadLogicError)
-            .map(Arc::new)
+            .map(TArc::new)
             .map(Some)
     } else {
         Err(BeaconChainError::InconsistentPayloadReconstructed {
@@ -125,7 +126,7 @@ fn reconstruct_default_header_block<E: EthSpec>(
 }
 
 fn reconstruct_blocks<E: EthSpec>(
-    block_map: &mut HashMap<Hash256, Arc<BlockResult<E>>>,
+    block_map: &mut HashMap<Hash256, TArc<BlockResult<E>>>,
     block_parts_with_bodies: HashMap<Hash256, BlockParts<E>>,
     log: &Logger,
 ) {
@@ -137,12 +138,12 @@ fn reconstruct_blocks<E: EthSpec>(
                     if header_from_payload == *block_parts.header {
                         block_map.insert(
                             root,
-                            Arc::new(
+                            TArc::new(
                                 block_parts
                                     .blinded_block
                                     .try_into_full_block(Some(payload))
                                     .ok_or(BeaconChainError::AddPayloadLogicError)
-                                    .map(Arc::new)
+                                    .map(TArc::new)
                                     .map(Some),
                             ),
                         );
@@ -155,20 +156,20 @@ fn reconstruct_blocks<E: EthSpec>(
                                 .transactions_root(),
                         };
                         debug!(log, "Failed to reconstruct block"; "root" => ?root, "error" => ?error);
-                        block_map.insert(root, Arc::new(Err(error)));
+                        block_map.insert(root, TArc::new(Err(error)));
                     }
                 }
                 Err(string) => {
                     block_map.insert(
                         root,
-                        Arc::new(Err(Error::PayloadReconstruction(string).into())),
+                        TArc::new(Err(Error::PayloadReconstruction(string).into())),
                     );
                 }
             }
         } else {
             block_map.insert(
                 root,
-                Arc::new(Err(BeaconChainError::BlockHashMissingFromExecutionLayer(
+                TArc::new(Err(BeaconChainError::BlockHashMissingFromExecutionLayer(
                     block_parts.block_hash(),
                 ))),
             );
@@ -263,7 +264,7 @@ impl<E: EthSpec> BodiesByRange<E> {
                 }
                 Err(e) => {
                     let block_result =
-                        Arc::new(Err(Error::BlocksByRangeFailure(Box::new(e)).into()));
+                        TArc::new(Err(Error::BlocksByRangeFailure(Box::new(e)).into()));
                     debug!(log, "Payload bodies by range failure"; "error" => ?block_result);
                     for block_parts in block_parts_vec {
                         block_map.insert(block_parts.root(), block_result.clone());
@@ -279,7 +280,7 @@ impl<E: EthSpec> BodiesByRange<E> {
         root: &Hash256,
         execution_layer: &ExecutionLayer<E>,
         log: &Logger,
-    ) -> Option<Arc<BlockResult<E>>> {
+    ) -> Option<TArc<BlockResult<E>>> {
         self.execute(execution_layer, log).await;
         if let RequestState::Sent(map) = &self.state {
             return map.get(root).cloned();
@@ -291,17 +292,17 @@ impl<E: EthSpec> BodiesByRange<E> {
 
 #[derive(Clone)]
 enum EngineRequest<E: EthSpec> {
-    ByRange(Arc<RwLock<BodiesByRange<E>>>),
+    ByRange(TArc<RwLock<BodiesByRange<E>>>),
     // When we already have the data or there's an error
-    NoRequest(Arc<RwLock<HashMap<Hash256, Arc<BlockResult<E>>>>>),
+    NoRequest(TArc<RwLock<HashMap<Hash256, TArc<BlockResult<E>>>>>),
 }
 
 impl<E: EthSpec> EngineRequest<E> {
     pub fn new_by_range() -> Self {
-        Self::ByRange(Arc::new(RwLock::new(BodiesByRange::new(None))))
+        Self::ByRange(TArc::new(RwLock::new(BodiesByRange::new(None))))
     }
     pub fn new_no_request() -> Self {
-        Self::NoRequest(Arc::new(RwLock::new(HashMap::new())))
+        Self::NoRequest(TArc::new(RwLock::new(HashMap::new())))
     }
 
     pub async fn is_unsent(&self) -> bool {
@@ -319,7 +320,7 @@ impl<E: EthSpec> EngineRequest<E> {
                 if let Err(block_parts) = request.push_block_parts(block_parts) {
                     drop(request);
                     let new_by_range = BodiesByRange::new(Some(block_parts));
-                    *self = Self::ByRange(Arc::new(RwLock::new(new_by_range)));
+                    *self = Self::ByRange(TArc::new(RwLock::new(new_by_range)));
                 }
             }
             Self::NoRequest(_) => {
@@ -350,7 +351,7 @@ impl<E: EthSpec> EngineRequest<E> {
                 );
             }
             Self::NoRequest(results) => {
-                results.write().await.insert(root, Arc::new(block_result));
+                results.write().await.insert(root, TArc::new(block_result));
             }
         }
     }
@@ -360,7 +361,7 @@ impl<E: EthSpec> EngineRequest<E> {
         root: &Hash256,
         execution_layer: &ExecutionLayer<E>,
         log: &Logger,
-    ) -> Arc<BlockResult<E>> {
+    ) -> TArc<BlockResult<E>> {
         match self {
             Self::ByRange(by_range) => {
                 by_range
@@ -378,7 +379,7 @@ impl<E: EthSpec> EngineRequest<E> {
                 "beacon_block_streamer" => "block_result not found in request",
                 "root" => ?root,
             );
-            Arc::new(Err(Error::BlockResultNotFound.into()))
+            TArc::new(Err(Error::BlockResultNotFound.into()))
         })
     }
 }
@@ -410,7 +411,7 @@ impl<T: BeaconChainTypes> BeaconBlockStreamer<T> {
     fn check_early_attester_cache(
         &self,
         root: Hash256,
-    ) -> Option<Arc<SignedBeaconBlock<T::EthSpec>>> {
+    ) -> Option<TArc<SignedBeaconBlock<T::EthSpec>>> {
         if self.check_early_attester_cache == CheckEarlyAttesterCache::Yes {
             self.beacon_chain.early_attester_cache.get_block(root)
         } else {
@@ -435,7 +436,7 @@ impl<T: BeaconChainTypes> BeaconBlockStreamer<T> {
                 Ok(opt_block) => db_blocks.push((
                     root,
                     Ok(opt_block.map(|db_block| match db_block {
-                        DatabaseBlock::Full(block) => LoadedBeaconBlock::Full(Arc::new(block)),
+                        DatabaseBlock::Full(block) => LoadedBeaconBlock::Full(TArc::new(block)),
                         DatabaseBlock::Blinded(block) => {
                             LoadedBeaconBlock::Blinded(Box::new(block))
                         }
@@ -547,7 +548,7 @@ impl<T: BeaconChainTypes> BeaconBlockStreamer<T> {
     async fn stream_blocks_fallback(
         &self,
         block_roots: Vec<Hash256>,
-        sender: UnboundedSender<(Hash256, Arc<BlockResult<T::EthSpec>>)>,
+        sender: UnboundedSender<(Hash256, TArc<BlockResult<T::EthSpec>>)>,
     ) {
         debug!(
             self.beacon_chain.log,
@@ -561,10 +562,10 @@ impl<T: BeaconChainTypes> BeaconBlockStreamer<T> {
                 self.beacon_chain
                     .get_block(&root)
                     .await
-                    .map(|opt_block| opt_block.map(Arc::new))
+                    .map(|opt_block| opt_block.map(TArc::new))
             };
 
-            if sender.send((root, Arc::new(block_result))).is_err() {
+            if sender.send((root, TArc::new(block_result))).is_err() {
                 break;
             }
         }
@@ -573,7 +574,7 @@ impl<T: BeaconChainTypes> BeaconBlockStreamer<T> {
     async fn stream_blocks(
         &self,
         block_roots: Vec<Hash256>,
-        sender: UnboundedSender<(Hash256, Arc<BlockResult<T::EthSpec>>)>,
+        sender: UnboundedSender<(Hash256, TArc<BlockResult<T::EthSpec>>)>,
     ) {
         let n_roots = block_roots.len();
         let mut n_success = 0usize;
@@ -622,7 +623,7 @@ impl<T: BeaconChainTypes> BeaconBlockStreamer<T> {
     pub async fn stream(
         self,
         block_roots: Vec<Hash256>,
-        sender: UnboundedSender<(Hash256, Arc<BlockResult<T::EthSpec>>)>,
+        sender: UnboundedSender<(Hash256, TArc<BlockResult<T::EthSpec>>)>,
     ) {
         match self
             .execution_layer
@@ -649,7 +650,7 @@ impl<T: BeaconChainTypes> BeaconBlockStreamer<T> {
         self,
         block_roots: Vec<Hash256>,
         executor: &TaskExecutor,
-    ) -> impl Stream<Item = (Hash256, Arc<BlockResult<T::EthSpec>>)> {
+    ) -> impl Stream<Item = (Hash256, TArc<BlockResult<T::EthSpec>>)> {
         let (block_tx, block_rx) = mpsc::unbounded_channel();
         debug!(
             self.beacon_chain.log,
@@ -663,10 +664,10 @@ impl<T: BeaconChainTypes> BeaconBlockStreamer<T> {
 
 async fn send_errors<E: EthSpec>(
     block_roots: Vec<Hash256>,
-    sender: UnboundedSender<(Hash256, Arc<BlockResult<E>>)>,
+    sender: UnboundedSender<(Hash256, TArc<BlockResult<E>>)>,
     beacon_chain_error: BeaconChainError,
 ) {
-    let result = Arc::new(Err(beacon_chain_error));
+    let result = TArc::new(Err(beacon_chain_error));
     for root in block_roots {
         if sender.send((root, result.clone())).is_err() {
             break;

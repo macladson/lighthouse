@@ -1,12 +1,14 @@
 use beacon_chain::block_verification_types::RpcBlock;
 use ssz_types::VariableList;
-use std::{collections::VecDeque, sync::Arc};
+use std::collections::VecDeque;
+use std::sync::Arc;
+use triomphe::Arc as TArc;
 use types::{BlobSidecar, EthSpec, SignedBeaconBlock};
 
 #[derive(Debug, Default)]
 pub struct BlocksAndBlobsRequestInfo<T: EthSpec> {
     /// Blocks we have received awaiting for their corresponding sidecar.
-    accumulated_blocks: VecDeque<Arc<SignedBeaconBlock<T>>>,
+    accumulated_blocks: VecDeque<TArc<SignedBeaconBlock<T>>>,
     /// Sidecars we have received awaiting for their corresponding block.
     accumulated_sidecars: VecDeque<Arc<BlobSidecar<T>>>,
     /// Whether the individual RPC request for blocks is finished or not.
@@ -16,7 +18,7 @@ pub struct BlocksAndBlobsRequestInfo<T: EthSpec> {
 }
 
 impl<T: EthSpec> BlocksAndBlobsRequestInfo<T> {
-    pub fn add_block_response(&mut self, block_opt: Option<Arc<SignedBeaconBlock<T>>>) {
+    pub fn add_block_response(&mut self, block_opt: Option<TArc<SignedBeaconBlock<T>>>) {
         match block_opt {
             Some(block) => self.accumulated_blocks.push_back(block),
             None => self.is_blocks_stream_terminated = true,

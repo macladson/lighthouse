@@ -7,6 +7,7 @@ use crate::data_availability_checker::ProcessingComponents;
 use kzg::KzgCommitment;
 use ssz_types::FixedVector;
 use std::sync::Arc;
+use triomphe::Arc as TArc;
 use types::beacon_block_body::KzgCommitments;
 use types::{BlobSidecar, EthSpec, SignedBeaconBlock};
 
@@ -198,7 +199,7 @@ impl_availability_view!(
 
 impl_availability_view!(
     ChildComponents,
-    Arc<SignedBeaconBlock<E>>,
+    TArc<SignedBeaconBlock<E>>,
     Arc<BlobSidecar<E>>,
     downloaded_block,
     downloaded_blobs
@@ -243,7 +244,7 @@ impl<E: EthSpec> GetCommitment<E> for KzgVerifiedBlob<E> {
 }
 
 // These implementations are required to implement `AvailabilityView` for `ChildComponents`.
-impl<E: EthSpec> GetCommitments<E> for Arc<SignedBeaconBlock<E>> {
+impl<E: EthSpec> GetCommitments<E> for TArc<SignedBeaconBlock<E>> {
     fn get_commitments(&self) -> KzgCommitments<E> {
         self.message()
             .body()
@@ -395,7 +396,7 @@ pub mod tests {
     }
 
     type ChildComponentsSetup<E> = (
-        Arc<SignedBeaconBlock<E>>,
+        TArc<SignedBeaconBlock<E>>,
         FixedVector<Option<Arc<BlobSidecar<E>>>, <E as EthSpec>::MaxBlobsPerBlock>,
         FixedVector<Option<Arc<BlobSidecar<E>>>, <E as EthSpec>::MaxBlobsPerBlock>,
     );

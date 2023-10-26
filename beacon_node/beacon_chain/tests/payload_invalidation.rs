@@ -22,10 +22,10 @@ use logging::test_logger;
 use proto_array::{Error as ProtoArrayError, ExecutionStatus};
 use slot_clock::SlotClock;
 use std::collections::HashMap;
-use std::sync::Arc;
 use std::time::Duration;
 use task_executor::ShutdownReason;
 use tree_hash::TreeHash;
+use triomphe::Arc;
 use types::*;
 
 const VALIDATOR_COUNT: usize = 32;

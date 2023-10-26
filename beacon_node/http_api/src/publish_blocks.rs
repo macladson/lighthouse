@@ -18,6 +18,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc::UnboundedSender;
 use tree_hash::TreeHash;
+use triomphe::Arc as TArc;
 use types::{
     AbstractExecPayload, BeaconBlockRef, BlindedPayload, EthSpec, ExecPayload, ExecutionBlockHash,
     ForkName, FullPayload, FullPayloadMerge, Hash256, SignedBeaconBlock, SignedBlobSidecarList,
@@ -64,7 +65,7 @@ pub async fn publish_block<T: BeaconChainTypes, B: IntoGossipVerifiedBlockConten
     debug!(log, "Signed block received in HTTP API"; "slot" => block.slot());
 
     /* actually publish a block */
-    let publish_block = move |block: Arc<SignedBeaconBlock<T::EthSpec>>,
+    let publish_block = move |block: TArc<SignedBeaconBlock<T::EthSpec>>,
                               blobs_opt: Option<SignedBlobSidecarList<T::EthSpec>>,
                               sender,
                               log,

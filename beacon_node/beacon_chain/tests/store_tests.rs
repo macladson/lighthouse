@@ -25,7 +25,6 @@ use state_processing::{state_advance::complete_state_advance, BlockReplayer};
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::convert::TryInto;
-use std::sync::Arc;
 use std::time::Duration;
 use store::metadata::{SchemaVersion, CURRENT_SCHEMA_VERSION};
 use store::{
@@ -35,6 +34,7 @@ use store::{
 use tempfile::{tempdir, TempDir};
 use tokio::time::sleep;
 use tree_hash::TreeHash;
+use triomphe::Arc;
 use types::test_utils::{SeedableRng, XorShiftRng};
 use types::*;
 

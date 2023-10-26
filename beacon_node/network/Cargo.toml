@@ -51,6 +51,7 @@ execution_layer = { workspace = true }
 beacon_processor = { workspace = true }
 parking_lot = { workspace = true }
 environment = { workspace = true }
+triomphe = { workspace = true }
 
 [features]
 # NOTE: This can be run via cargo build --bin lighthouse --features network/disable-backfill

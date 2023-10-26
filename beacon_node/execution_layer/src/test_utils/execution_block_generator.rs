@@ -17,9 +17,9 @@ use serde::{Deserialize, Serialize};
 use ssz::Decode;
 use ssz_types::VariableList;
 use std::collections::HashMap;
-use std::sync::Arc;
 use tree_hash::TreeHash;
 use tree_hash_derive::TreeHash;
+use triomphe::Arc;
 use types::{
     Blob, ChainSpec, EthSpec, ExecutionBlockHash, ExecutionPayload, ExecutionPayloadCapella,
     ExecutionPayloadDeneb, ExecutionPayloadHeader, ExecutionPayloadMerge, ForkName, Hash256,

@@ -14,6 +14,7 @@ use std::ops::Deref;
 use std::sync::Arc;
 use strum::IntoStaticStr;
 use superstruct::superstruct;
+use triomphe::Arc as TArc;
 use types::blob_sidecar::BlobIdentifier;
 use types::consts::deneb::MAX_BLOBS_PER_BLOCK;
 use types::{
@@ -381,10 +382,10 @@ pub enum RPCResponse<T: EthSpec> {
 
     /// A response to a get BLOCKS_BY_RANGE request. A None response signifies the end of the
     /// batch.
-    BlocksByRange(Arc<SignedBeaconBlock<T>>),
+    BlocksByRange(TArc<SignedBeaconBlock<T>>),
 
     /// A response to a get BLOCKS_BY_ROOT request.
-    BlocksByRoot(Arc<SignedBeaconBlock<T>>),
+    BlocksByRoot(TArc<SignedBeaconBlock<T>>),
 
     /// A response to a get BLOBS_BY_RANGE request
     BlobsByRange(Arc<BlobSidecar<T>>),

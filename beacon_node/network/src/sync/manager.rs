@@ -63,6 +63,7 @@ use std::ops::Sub;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc;
+use triomphe::Arc as TArc;
 use types::blob_sidecar::FixedBlobSidecarList;
 use types::{BlobSidecar, EthSpec, Hash256, SignedBeaconBlock, Slot};
 
@@ -116,7 +117,7 @@ pub enum SyncMessage<T: EthSpec> {
     RpcBlock {
         request_id: RequestId,
         peer_id: PeerId,
-        beacon_block: Option<Arc<SignedBeaconBlock<T>>>,
+        beacon_block: Option<TArc<SignedBeaconBlock<T>>>,
         seen_timestamp: Duration,
     },
 
@@ -858,7 +859,7 @@ impl<T: BeaconChainTypes> SyncManager<T> {
         &mut self,
         request_id: RequestId,
         peer_id: PeerId,
-        block: Option<Arc<SignedBeaconBlock<T::EthSpec>>>,
+        block: Option<TArc<SignedBeaconBlock<T::EthSpec>>>,
         seen_timestamp: Duration,
     ) {
         match request_id {

@@ -10,9 +10,9 @@ use beacon_chain::BeaconChainTypes;
 use itertools::Itertools;
 use lighthouse_network::PeerId;
 use std::collections::VecDeque;
-use std::sync::Arc;
 use store::Hash256;
 use strum::IntoStaticStr;
+use triomphe::Arc;
 
 /// How many attempts we try to find a parent of a block before we give up trying.
 pub(crate) const PARENT_FAIL_TOLERANCE: u8 = 5;

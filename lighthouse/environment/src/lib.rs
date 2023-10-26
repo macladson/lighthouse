@@ -19,7 +19,8 @@ use sloggers::{file::FileLoggerBuilder, types::Format, types::Severity, Build};
 use std::fs::create_dir_all;
 use std::io::{Result as IOResult, Write};
 use std::path::PathBuf;
-use std::sync::Arc;
+//use triomphe::Arc;
+use std::sync::Arc; // leave as std::sync
 use task_executor::{ShutdownReason, TaskExecutor};
 use tokio::runtime::{Builder as RuntimeBuilder, Runtime};
 use types::{EthSpec, GnosisEthSpec, MainnetEthSpec, MinimalEthSpec};

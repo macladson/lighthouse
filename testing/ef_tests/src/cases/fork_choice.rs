@@ -17,6 +17,7 @@ use state_processing::state_advance::complete_state_advance;
 use std::future::Future;
 use std::sync::Arc;
 use std::time::Duration;
+use triomphe::Arc as TArc;
 use types::{
     Attestation, AttesterSlashing, BeaconBlock, BeaconState, BlobSidecar, BlobsList, Checkpoint,
     EthSpec, ExecutionBlockHash, ForkName, Hash256, IndexedAttestation, KzgProof,
@@ -457,7 +458,7 @@ impl<E: EthSpec> Tester<E> {
             }
         };
 
-        let block = Arc::new(block);
+        let block = TArc::new(block);
         let result: Result<Result<Hash256, ()>, _> = self
             .block_on_dangerous(self.harness.chain.process_block(
                 block_root,

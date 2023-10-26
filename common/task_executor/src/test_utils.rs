@@ -1,8 +1,8 @@
 use crate::TaskExecutor;
 use slog::Logger;
 use sloggers::{null::NullLoggerBuilder, Build};
-use std::sync::Arc;
 use tokio::runtime;
+use triomphe::Arc;
 
 /// Whilst the `TestRuntime` is not necessarily useful in itself, it provides the necessary
 /// components for creating a `TaskExecutor` during tests.

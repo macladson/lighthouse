@@ -6,10 +6,10 @@ use lighthouse_network::EnrExt;
 use lighthouse_network::Multiaddr;
 use lighthouse_network::{NetworkConfig, NetworkEvent};
 use slog::{debug, error, o, Drain};
-use std::sync::Arc;
 use std::sync::Weak;
 use std::time::Duration;
 use tokio::runtime::Runtime;
+use triomphe::Arc;
 use types::{
     ChainSpec, EnrForkId, Epoch, EthSpec, ForkContext, ForkName, Hash256, MinimalEthSpec, Slot,
 };

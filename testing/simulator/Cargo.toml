@@ -19,3 +19,4 @@ env_logger = { workspace = true }
 clap = { workspace = true }
 rayon = { workspace = true }
 sensitive_url  = { path = "../../common/sensitive_url" }
+triomphe = { workspace = true }

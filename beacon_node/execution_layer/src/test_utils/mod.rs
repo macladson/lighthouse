@@ -18,8 +18,8 @@ use std::convert::Infallible;
 use std::future::Future;
 use std::marker::PhantomData;
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
-use std::sync::Arc;
 use tokio::{runtime, sync::oneshot};
+use triomphe::Arc;
 use types::{EthSpec, ExecutionBlockHash, Uint256};
 use warp::{http::StatusCode, Filter, Rejection};
 

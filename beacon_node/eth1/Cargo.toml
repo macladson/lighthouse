@@ -32,3 +32,4 @@ lazy_static = { workspace = true }
 task_executor = { workspace = true }
 eth2 = { workspace = true }
 sensitive_url = { workspace = true }
+triomphe = { workspace = true }

@@ -26,6 +26,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use store::MemoryStore;
 use task_executor::test_utils::TestRuntime;
+use triomphe::Arc as TArc;
 use types::{ChainSpec, EthSpec};
 
 pub const TCP_PORT: u16 = 42;
@@ -139,7 +140,7 @@ pub async fn create_api_server<T: BeaconChainTypes>(
     });
     let enr_key = CombinedKey::generate_secp256k1();
     let enr = EnrBuilder::new("v4").build(&enr_key).unwrap();
-    let network_globals = Arc::new(NetworkGlobals::new(
+    let network_globals = TArc::new(NetworkGlobals::new(
         enr.clone(),
         meta_data,
         vec![],
@@ -204,7 +205,7 @@ pub async fn create_api_server<T: BeaconChainTypes>(
     )
     .unwrap();
 
-    let ctx = Arc::new(Context {
+    let ctx = TArc::new(Context {
         config: Config {
             enabled: true,
             listen_port: port,

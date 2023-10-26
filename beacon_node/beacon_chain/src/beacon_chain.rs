@@ -109,7 +109,7 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::io::prelude::*;
 use std::marker::PhantomData;
-use std::sync::Arc;
+use std::sync::Arc; // leave as std::sync
 use std::time::{Duration, Instant};
 use store::iter::{BlockRootsIterator, ParentRootBlockIterator, StateRootsIterator};
 use store::{
@@ -118,6 +118,7 @@ use store::{
 use task_executor::{ShutdownReason, TaskExecutor};
 use tokio_stream::Stream;
 use tree_hash::TreeHash;
+use triomphe::Arc as TArc;
 use types::beacon_state::CloneConfig;
 use types::blob_sidecar::{BlobSidecarList, FixedBlobSidecarList};
 use types::sidecar::BlobItems;
@@ -445,7 +446,7 @@ pub struct BeaconChain<T: BeaconChainTypes> {
     /// HTTP server is enabled.
     pub event_handler: Option<ServerSentEventHandler<T::EthSpec>>,
     /// Used to track the heads of the beacon chain.
-    pub(crate) head_tracker: Arc<HeadTracker>,
+    pub(crate) head_tracker: TArc<HeadTracker>,
     /// A cache dedicated to block processing.
     pub(crate) snapshot_cache: TimeoutRwLock<SnapshotCache<T::EthSpec>>,
     /// Caches the attester shuffling for a given epoch and shuffling key root.
@@ -457,11 +458,11 @@ pub struct BeaconChain<T: BeaconChainTypes> {
     /// Caches a map of `validator_index -> validator_pubkey`.
     pub(crate) validator_pubkey_cache: TimeoutRwLock<ValidatorPubkeyCache<T>>,
     /// A cache used when producing attestations.
-    pub(crate) attester_cache: Arc<AttesterCache>,
+    pub(crate) attester_cache: TArc<AttesterCache>,
     /// A cache used when producing attestations whilst the head block is still being imported.
     pub early_attester_cache: EarlyAttesterCache<T::EthSpec>,
     /// A cache used to keep track of various block timings.
-    pub block_times_cache: Arc<RwLock<BlockTimesCache>>,
+    pub block_times_cache: TArc<RwLock<BlockTimesCache>>,
     /// A cache used to track pre-finalization block roots for quick rejection.
     pub pre_finalization_block_cache: PreFinalizationBlockCache,
     /// Sender given to tasks, so that if they encounter a state in which execution cannot
@@ -479,9 +480,9 @@ pub struct BeaconChain<T: BeaconChainTypes> {
     pub genesis_backfill_slot: Slot,
     /// Provides a KZG verification and temporary storage for blocks and blobs as
     /// they are collected and combined.
-    pub data_availability_checker: Arc<DataAvailabilityChecker<T>>,
+    pub data_availability_checker: TArc<DataAvailabilityChecker<T>>,
     /// The KZG trusted setup used by this chain.
-    pub kzg: Option<Arc<Kzg>>,
+    pub kzg: Option<TArc<Kzg>>,
 }
 
 type BeaconBlockAndState<T, Payload> = (
@@ -1075,7 +1076,7 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
         impl Stream<
             Item = (
                 Hash256,
-                Arc<Result<Option<Arc<SignedBeaconBlock<T::EthSpec>>>, Error>>,
+                TArc<Result<Option<TArc<SignedBeaconBlock<T::EthSpec>>>, Error>>,
             ),
         >,
         Error,
@@ -1094,7 +1095,7 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
         impl Stream<
             Item = (
                 Hash256,
-                Arc<Result<Option<Arc<SignedBeaconBlock<T::EthSpec>>>, Error>>,
+                TArc<Result<Option<TArc<SignedBeaconBlock<T::EthSpec>>>, Error>>,
             ),
         >,
         Error,
@@ -1217,7 +1218,7 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
     pub fn sync_committee_at_next_slot(
         &self,
         slot: Slot,
-    ) -> Result<Arc<SyncCommittee<T::EthSpec>>, Error> {
+    ) -> Result<TArc<SyncCommittee<T::EthSpec>>, Error> {
         let epoch = slot.safe_add(1)?.epoch(T::EthSpec::slots_per_epoch());
         self.sync_committee_at_epoch(epoch)
     }
@@ -1226,7 +1227,7 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
     pub fn sync_committee_at_epoch(
         &self,
         epoch: Epoch,
-    ) -> Result<Arc<SyncCommittee<T::EthSpec>>, Error> {
+    ) -> Result<TArc<SyncCommittee<T::EthSpec>>, Error> {
         // Try to read a committee from the head. This will work most of the time, but will fail
         // for faraway committees, or if there are skipped slots at the transition to Altair.
         let spec = &self.spec;
@@ -2749,7 +2750,7 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
     /// Returns an `Err` if the given block was invalid, or an error was encountered during
     pub async fn verify_block_for_gossip(
         self: &Arc<Self>,
-        block: Arc<SignedBeaconBlock<T::EthSpec>>,
+        block: TArc<SignedBeaconBlock<T::EthSpec>>,
     ) -> Result<GossipVerifiedBlock<T>, BlockError<T::EthSpec>> {
         let chain = self.clone();
         self.task_executor
@@ -6092,7 +6093,7 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
             state.build_committee_cache(relative_epoch, &self.spec)?;
 
             let committee_cache = state.take_committee_cache(relative_epoch)?;
-            let committee_cache = Arc::new(committee_cache);
+            let committee_cache = TArc::new(committee_cache);
             let shuffling_decision_block = shuffling_id.shuffling_decision_block;
 
             self.shuffling_cache
@@ -6121,7 +6122,7 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
         let mut last_slot = {
             let head = self.canonical_head.cached_head();
             BeaconSnapshot {
-                beacon_block: Arc::new(head.snapshot.beacon_block.clone_as_blinded()),
+                beacon_block: TArc::new(head.snapshot.beacon_block.clone_as_blinded()),
                 beacon_block_root: head.snapshot.beacon_block_root,
                 beacon_state: head.snapshot.beacon_state.clone(),
             }
@@ -6151,7 +6152,7 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
                 })?;
 
             let slot = BeaconSnapshot {
-                beacon_block: Arc::new(beacon_block),
+                beacon_block: TArc::new(beacon_block),
                 beacon_block_root,
                 beacon_state,
             };

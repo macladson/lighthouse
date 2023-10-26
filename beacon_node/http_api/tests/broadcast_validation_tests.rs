@@ -8,8 +8,8 @@ use eth2::types::{
 };
 use http_api::test_utils::InteractiveTester;
 use http_api::{publish_blinded_block, publish_block, reconstruct_block, ProvenancedBlock};
-use std::sync::Arc;
 use tree_hash::TreeHash;
+use triomphe::Arc;
 use types::{
     BlindedBlobSidecar, BlindedPayload, BlobSidecar, FullPayload, Hash256, MainnetEthSpec,
     SignedSidecarList, Slot,

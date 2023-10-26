@@ -27,12 +27,14 @@ use lighthouse_network::{
     MessageId, NetworkEvent, NetworkGlobals, PeerId,
 };
 use slog::{crit, debug, error, info, o, trace, warn};
-use std::{collections::HashSet, pin::Pin, sync::Arc, time::Duration};
+use std::sync::Arc;
+use std::{collections::HashSet, pin::Pin, time::Duration};
 use store::HotColdDB;
 use strum::IntoStaticStr;
 use task_executor::ShutdownReason;
 use tokio::sync::mpsc;
 use tokio::time::Sleep;
+use triomphe::Arc as TArc;
 use types::{
     ChainSpec, EthSpec, ForkContext, Slot, SubnetId, SyncCommitteeSubscription, SyncSubnetId,
     Unsigned, ValidatorSubscription,
@@ -187,7 +189,7 @@ pub struct NetworkService<T: BeaconChainTypes> {
     /// A reference to lighthouse's database to persist the DHT.
     store: Arc<HotColdDB<T::EthSpec, T::HotStore, T::ColdStore>>,
     /// A collection of global variables, accessible outside of the network service.
-    network_globals: Arc<NetworkGlobals<T::EthSpec>>,
+    network_globals: TArc<NetworkGlobals<T::EthSpec>>,
     /// Stores potentially created UPnP mappings to be removed on shutdown. (TCP port and UDP
     /// ports).
     upnp_mappings: EstablishedUPnPMappings,
@@ -210,7 +212,7 @@ pub struct NetworkService<T: BeaconChainTypes> {
     /// enable_light_client_server indicator
     enable_light_client_server: bool,
     /// The logger for the network service.
-    fork_context: Arc<ForkContext>,
+    fork_context: TArc<ForkContext>,
     log: slog::Logger,
 }
 
@@ -224,7 +226,7 @@ impl<T: BeaconChainTypes> NetworkService<T> {
         beacon_processor_reprocess_tx: mpsc::Sender<ReprocessQueueMessage>,
     ) -> error::Result<(
         NetworkService<T>,
-        Arc<NetworkGlobals<T::EthSpec>>,
+        TArc<NetworkGlobals<T::EthSpec>>,
         NetworkSenders<T::EthSpec>,
     )> {
         let network_log = executor.log().clone();
@@ -271,7 +273,7 @@ impl<T: BeaconChainTypes> NetworkService<T> {
             .unwrap_or(beacon_chain.spec.genesis_slot);
 
         // Create a fork context for the given config and genesis validators root
-        let fork_context = Arc::new(ForkContext::new::<T::EthSpec>(
+        let fork_context = TArc::new(ForkContext::new::<T::EthSpec>(
             current_slot,
             beacon_chain.genesis_validators_root,
             &beacon_chain.spec,
@@ -383,7 +385,7 @@ impl<T: BeaconChainTypes> NetworkService<T> {
         gossipsub_registry: Option<&'_ mut Registry>,
         beacon_processor_send: BeaconProcessorSend<T::EthSpec>,
         beacon_processor_reprocess_tx: mpsc::Sender<ReprocessQueueMessage>,
-    ) -> error::Result<(Arc<NetworkGlobals<T::EthSpec>>, NetworkSenders<T::EthSpec>)> {
+    ) -> error::Result<(TArc<NetworkGlobals<T::EthSpec>>, NetworkSenders<T::EthSpec>)> {
         let (network_service, network_globals, network_senders) = Self::build(
             beacon_chain,
             config,

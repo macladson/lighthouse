@@ -17,9 +17,9 @@ use slog::{debug, error, info, trace, warn, Logger};
 use std::fmt::Debug;
 use std::ops::{Range, RangeInclusive};
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::time::{interval_at, Duration, Instant};
+use triomphe::Arc;
 use types::{ChainSpec, DepositTreeSnapshot, Eth1Data, EthSpec, Unsigned};
 
 /// Indicates the default eth1 chain id we use for the deposit contract.

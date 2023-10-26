@@ -27,11 +27,11 @@ use slot_clock::SlotClock;
 use std::cmp::min;
 use std::collections::{hash_map, BTreeMap, HashMap, HashSet};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
 use std::time::Duration;
 use sync::poll_sync_committee_duties;
 use sync::SyncDutiesMap;
 use tokio::{sync::mpsc::Sender, time::sleep};
+use triomphe::Arc;
 use types::{ChainSpec, Epoch, EthSpec, Hash256, PublicKeyBytes, SelectionProof, Slot};
 
 /// Only retain `HISTORICAL_DUTIES_EPOCHS` duties prior to the current epoch.

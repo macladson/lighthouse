@@ -5,7 +5,7 @@ use eth2::types::{EventKind, SseBlobSidecar};
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 use std::marker::PhantomData;
-use std::sync::Arc;
+use triomphe::Arc;
 use types::blob_sidecar::FixedBlobSidecarList;
 use types::{BlobSidecar, EthSpec, ForkName, MinimalEthSpec, SignedBlobSidecar};
 

@@ -7,7 +7,7 @@ use snap::raw::{decompress_len, Decoder, Encoder};
 use ssz::{Decode, Encode};
 use std::boxed::Box;
 use std::io::{Error, ErrorKind};
-use std::sync::Arc;
+use triomphe::Arc;
 use types::{
     Attestation, AttesterSlashing, EthSpec, ForkContext, ForkName, LightClientFinalityUpdate,
     LightClientOptimisticUpdate, ProposerSlashing, SignedAggregateAndProof, SignedBeaconBlock,

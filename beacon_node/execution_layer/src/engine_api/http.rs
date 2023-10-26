@@ -1190,7 +1190,7 @@ mod test {
     use crate::test_utils::{MockServer, DEFAULT_JWT_SECRET};
     use std::future::Future;
     use std::str::FromStr;
-    use std::sync::Arc;
+    use triomphe::Arc;
     use types::{ExecutionPayloadMerge, MainnetEthSpec, Transactions, Unsigned, VariableList};
 
     struct Tester {

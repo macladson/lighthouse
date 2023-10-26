@@ -15,9 +15,9 @@ use libp2p::PeerId;
 use rate_limiter::{RPCRateLimiter as RateLimiter, RateLimitedErr};
 use slog::{crit, debug, o};
 use std::marker::PhantomData;
-use std::sync::Arc;
 use std::task::{Context, Poll};
 use std::time::Duration;
+use triomphe::Arc;
 use types::{EthSpec, ForkContext};
 
 pub(crate) use handler::HandlerErr;

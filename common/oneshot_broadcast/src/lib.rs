@@ -3,7 +3,7 @@
 //!
 //! This implementation may not be blazingly fast but it should be simple enough to be reliable.
 use parking_lot::{Condvar, Mutex};
-use std::sync::Arc;
+use triomphe::Arc;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Error {

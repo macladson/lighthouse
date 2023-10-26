@@ -13,9 +13,9 @@ use slog::{trace, Logger};
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::marker::PhantomData;
-use std::sync::Arc;
 use store::Hash256;
 use strum::IntoStaticStr;
+use triomphe::Arc;
 use types::blob_sidecar::FixedBlobSidecarList;
 use types::EthSpec;
 

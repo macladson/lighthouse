@@ -25,6 +25,7 @@ use std::collections::{
     HashMap, HashSet,
 };
 use std::sync::Arc;
+use triomphe::Arc as TArc;
 use types::{Epoch, EthSpec};
 
 /// Blocks are downloaded in batches from peers. This constant specifies how many epochs worth of
@@ -142,7 +143,7 @@ pub struct BackFillSync<T: BeaconChainTypes> {
 
     /// Reference to the network globals in order to obtain valid peers to backfill blocks from
     /// (i.e synced peers).
-    network_globals: Arc<NetworkGlobals<T::EthSpec>>,
+    network_globals: TArc<NetworkGlobals<T::EthSpec>>,
 
     /// A logger for backfill sync.
     log: slog::Logger,
@@ -151,7 +152,7 @@ pub struct BackFillSync<T: BeaconChainTypes> {
 impl<T: BeaconChainTypes> BackFillSync<T> {
     pub fn new(
         beacon_chain: Arc<BeaconChain<T>>,
-        network_globals: Arc<NetworkGlobals<T::EthSpec>>,
+        network_globals: TArc<NetworkGlobals<T::EthSpec>>,
         log: slog::Logger,
     ) -> Self {
         // Determine if backfill is enabled or not.

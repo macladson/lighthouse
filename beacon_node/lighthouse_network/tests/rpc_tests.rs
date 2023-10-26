@@ -8,10 +8,10 @@ use lighthouse_network::{rpc::max_rpc_size, NetworkEvent, ReportSource, Request,
 use slog::{debug, warn, Level};
 use ssz::Encode;
 use ssz_types::VariableList;
-use std::sync::Arc;
 use std::time::Duration;
 use tokio::runtime::Runtime;
 use tokio::time::sleep;
+use triomphe::Arc;
 use types::{
     BeaconBlock, BeaconBlockAltair, BeaconBlockBase, BeaconBlockMerge, BlobSidecar, ChainSpec,
     EmptyBlock, Epoch, EthSpec, ForkContext, ForkName, Hash256, MinimalEthSpec, Signature,

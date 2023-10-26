@@ -19,6 +19,7 @@ use slog::{debug, trace, warn};
 use std::collections::hash_map::Entry;
 use std::sync::Arc;
 use tokio::sync::mpsc;
+use triomphe::Arc as TArc;
 use types::{BlobSidecar, EthSpec, SignedBeaconBlock};
 
 pub struct BlocksAndBlobsByRangeResponse<T: EthSpec> {
@@ -68,12 +69,12 @@ pub struct SyncNetworkContext<T: BeaconChainTypes> {
 
 /// Small enumeration to make dealing with block and blob requests easier.
 pub enum BlockOrBlob<T: EthSpec> {
-    Block(Option<Arc<SignedBeaconBlock<T>>>),
+    Block(Option<TArc<SignedBeaconBlock<T>>>),
     Blob(Option<Arc<BlobSidecar<T>>>),
 }
 
-impl<T: EthSpec> From<Option<Arc<SignedBeaconBlock<T>>>> for BlockOrBlob<T> {
-    fn from(block: Option<Arc<SignedBeaconBlock<T>>>) -> Self {
+impl<T: EthSpec> From<Option<TArc<SignedBeaconBlock<T>>>> for BlockOrBlob<T> {
+    fn from(block: Option<TArc<SignedBeaconBlock<T>>>) -> Self {
         BlockOrBlob::Block(block)
     }
 }

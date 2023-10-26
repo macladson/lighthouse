@@ -8,6 +8,7 @@ use crate::HttpJsonRpc;
 use lru::LruCache;
 use slog::{debug, error, info, warn, Logger};
 use std::future::Future;
+//use triomphe::Arc;
 use std::sync::Arc;
 use std::time::Duration;
 use task_executor::TaskExecutor;

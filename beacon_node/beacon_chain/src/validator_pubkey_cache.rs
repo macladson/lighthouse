@@ -193,8 +193,8 @@ mod test {
     use super::*;
     use crate::test_utils::{BeaconChainHarness, EphemeralHarnessType};
     use logging::test_logger;
-    use std::sync::Arc;
     use store::HotColdDB;
+    use triomphe::Arc;
     use types::{BeaconState, EthSpec, Keypair, MainnetEthSpec};
 
     type E = MainnetEthSpec;

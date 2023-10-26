@@ -58,6 +58,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use store::{iter::StateRootsIterator, KeyValueStoreOp, StoreItem};
 use task_executor::{JoinHandle, ShutdownReason};
+use triomphe::Arc as TArc;
 use types::*;
 
 /// Simple wrapper around `RwLock` that uses private visibility to prevent any other modules from
@@ -91,7 +92,7 @@ impl<T> CanonicalHeadRwLock<T> {
 #[derive(Clone)]
 pub struct CachedHead<E: EthSpec> {
     /// Provides the head block and state from the last time the head was updated.
-    pub snapshot: Arc<BeaconSnapshot<E>>,
+    pub snapshot: TArc<BeaconSnapshot<E>>,
     /// The justified checkpoint as per `self.fork_choice`.
     ///
     /// This value may be distinct to the `self.snapshot.beacon_state.justified_checkpoint`.
@@ -255,7 +256,7 @@ impl<T: BeaconChainTypes> CanonicalHead<T> {
     /// Instantiate `Self`.
     pub fn new(
         fork_choice: BeaconForkChoice<T>,
-        snapshot: Arc<BeaconSnapshot<T::EthSpec>>,
+        snapshot: TArc<BeaconSnapshot<T::EthSpec>>,
     ) -> Self {
         let fork_choice_view = fork_choice.cached_fork_choice_view();
         let forkchoice_update_params = fork_choice.get_forkchoice_update_parameters();
@@ -306,13 +307,13 @@ impl<T: BeaconChainTypes> CanonicalHead<T> {
 
         let snapshot = BeaconSnapshot {
             beacon_block_root,
-            beacon_block: Arc::new(beacon_block),
+            beacon_block: TArc::new(beacon_block),
             beacon_state,
         };
 
         let forkchoice_update_params = fork_choice.get_forkchoice_update_parameters();
         let cached_head = CachedHead {
-            snapshot: Arc::new(snapshot),
+            snapshot: TArc::new(snapshot),
             justified_checkpoint: fork_choice_view.justified_checkpoint,
             finalized_checkpoint: fork_choice_view.finalized_checkpoint,
             head_hash: forkchoice_update_params.head_hash,
@@ -443,14 +444,14 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
     /// Returns a `Arc` of the `BeaconSnapshot` at the head of the canonical chain.
     ///
     /// See `Self::head` for more information.
-    pub fn head_snapshot(&self) -> Arc<BeaconSnapshot<T::EthSpec>> {
+    pub fn head_snapshot(&self) -> TArc<BeaconSnapshot<T::EthSpec>> {
         self.canonical_head.cached_head_read_lock().snapshot.clone()
     }
 
     /// Returns the beacon block at the head of the canonical chain.
     ///
     /// See `Self::head` for more information.
-    pub fn head_beacon_block(&self) -> Arc<SignedBeaconBlock<T::EthSpec>> {
+    pub fn head_beacon_block(&self) -> TArc<SignedBeaconBlock<T::EthSpec>> {
         self.canonical_head
             .cached_head_read_lock()
             .snapshot
@@ -465,7 +466,7 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
     /// See `Self::head` for more information.
     pub fn head_beacon_state_cloned(&self) -> BeaconState<T::EthSpec> {
         // Don't clone whilst holding the read-lock, take an Arc-clone to reduce lock contention.
-        let snapshot: Arc<_> = self.head_snapshot();
+        let snapshot: TArc<_> = self.head_snapshot();
         snapshot
             .beacon_state
             .clone_with(CloneConfig::committee_caches_only())
@@ -680,7 +681,7 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
                         .ok_or(Error::MissingBeaconState(beacon_block.state_root()))?;
 
                     Ok(BeaconSnapshot {
-                        beacon_block: Arc::new(beacon_block),
+                        beacon_block: TArc::new(beacon_block),
                         beacon_block_root: new_view.head_block_root,
                         beacon_state,
                     })
@@ -696,7 +697,7 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
                 })?;
 
             let new_cached_head = CachedHead {
-                snapshot: Arc::new(new_snapshot),
+                snapshot: TArc::new(new_snapshot),
                 justified_checkpoint: new_view.justified_checkpoint,
                 finalized_checkpoint: new_view.finalized_checkpoint,
                 head_hash: new_forkchoice_update_parameters.head_hash,

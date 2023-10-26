@@ -398,6 +398,7 @@ mod tests {
     use std::sync::Arc;
     use store::MemoryStore;
     use tokio::sync::mpsc;
+    use triomphe::Arc as TArc;
     use types::{ForkName, Hash256, MinimalEthSpec as E};
 
     #[derive(Debug)]
@@ -472,7 +473,7 @@ mod tests {
         network_rx: mpsc::UnboundedReceiver<NetworkMessage<E>>,
         /// To modify what the network declares about various global variables, in particular about
         /// the sync state of a peer.
-        globals: Arc<NetworkGlobals<E>>,
+        globals: TArc<NetworkGlobals<E>>,
     }
 
     impl RangeSync<TestBeaconChainType, FakeStorage> {
@@ -636,7 +637,7 @@ mod tests {
             log.new(o!("component" => "range")),
         );
         let (network_tx, network_rx) = mpsc::unbounded_channel();
-        let globals = Arc::new(NetworkGlobals::new_test_globals(Vec::new(), &log));
+        let globals = TArc::new(NetworkGlobals::new_test_globals(Vec::new(), &log));
         let (network_beacon_processor, beacon_processor_rx) =
             NetworkBeaconProcessor::null_for_testing(globals.clone());
         let cx = SyncNetworkContext::new(

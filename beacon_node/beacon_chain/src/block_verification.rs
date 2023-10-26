@@ -98,6 +98,7 @@ use std::time::Duration;
 use store::{Error as DBError, HotStateSummary, KeyValueStore, SignedBlobSidecarList, StoreOp};
 use task_executor::JoinHandle;
 use tree_hash::TreeHash;
+use triomphe::Arc as TArc;
 use types::ExecPayload;
 use types::{
     BeaconBlockRef, BeaconState, BeaconStateError, ChainSpec, CloneConfig, Epoch, EthSpec,
@@ -626,7 +627,7 @@ pub fn signature_verify_chain_segment<T: BeaconChainTypes>(
 #[derive(Derivative)]
 #[derivative(Debug(bound = "T: BeaconChainTypes"))]
 pub struct GossipVerifiedBlock<T: BeaconChainTypes> {
-    pub block: Arc<SignedBeaconBlock<T::EthSpec>>,
+    pub block: TArc<SignedBeaconBlock<T::EthSpec>>,
     pub block_root: Hash256,
     parent: Option<PreProcessingSnapshot<T::EthSpec>>,
     consensus_context: ConsensusContext<T::EthSpec>,
@@ -700,7 +701,7 @@ impl<T: BeaconChainTypes> IntoGossipVerifiedBlockContents<T> for SignedBlockCont
         chain: &BeaconChain<T>,
     ) -> Result<GossipVerifiedBlockContents<T>, BlockContentsError<T::EthSpec>> {
         let (block, blobs) = self.deconstruct();
-        let gossip_verified_block = GossipVerifiedBlock::new(Arc::new(block), chain)?;
+        let gossip_verified_block = GossipVerifiedBlock::new(TArc::new(block), chain)?;
         let gossip_verified_blobs = blobs
             .map(|blobs| {
                 Ok::<_, GossipBlobError<T::EthSpec>>(VariableList::from(
@@ -761,7 +762,7 @@ impl<T: BeaconChainTypes> GossipVerifiedBlock<T> {
     ///
     /// Returns an error if the block is invalid, or if the block was unable to be verified.
     pub fn new(
-        block: Arc<SignedBeaconBlock<T::EthSpec>>,
+        block: TArc<SignedBeaconBlock<T::EthSpec>>,
         chain: &BeaconChain<T>,
     ) -> Result<Self, BlockError<T::EthSpec>> {
         // If the block is valid for gossip we don't supply it to the slasher here because
@@ -776,7 +777,7 @@ impl<T: BeaconChainTypes> GossipVerifiedBlock<T> {
 
     /// As for new, but doesn't pass the block to the slasher.
     fn new_without_slasher_checks(
-        block: Arc<SignedBeaconBlock<T::EthSpec>>,
+        block: TArc<SignedBeaconBlock<T::EthSpec>>,
         chain: &BeaconChain<T>,
     ) -> Result<Self, BlockError<T::EthSpec>> {
         // Ensure the block is the correct structure for the fork at `block.slot()`.
@@ -1145,7 +1146,7 @@ impl<T: BeaconChainTypes> IntoExecutionPendingBlock<T> for SignatureVerifiedBloc
     }
 }
 
-impl<T: BeaconChainTypes> IntoExecutionPendingBlock<T> for Arc<SignedBeaconBlock<T::EthSpec>> {
+impl<T: BeaconChainTypes> IntoExecutionPendingBlock<T> for TArc<SignedBeaconBlock<T::EthSpec>> {
     /// Verifies the `SignedBeaconBlock` by first transforming it into a `SignatureVerifiedBlock`
     /// and then using that implementation of `IntoExecutionPendingBlock` to complete verification.
     fn into_execution_pending_block_slashable(
@@ -1764,8 +1765,8 @@ pub fn get_block_root<E: EthSpec>(block: &SignedBeaconBlock<E>) -> Hash256 {
 fn verify_parent_block_is_known<T: BeaconChainTypes>(
     block_root: Hash256,
     chain: &BeaconChain<T>,
-    block: Arc<SignedBeaconBlock<T::EthSpec>>,
-) -> Result<(ProtoBlock, Arc<SignedBeaconBlock<T::EthSpec>>), BlockError<T::EthSpec>> {
+    block: TArc<SignedBeaconBlock<T::EthSpec>>,
+) -> Result<(ProtoBlock, TArc<SignedBeaconBlock<T::EthSpec>>), BlockError<T::EthSpec>> {
     if let Some(proto_block) = chain
         .canonical_head
         .fork_choice_read_lock()

@@ -13,9 +13,9 @@ use std::fmt;
 use std::fmt::Debug;
 use std::future::Future;
 use std::marker::PhantomData;
-use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::{sync::RwLock, time::sleep};
+use triomphe::Arc;
 use types::{ChainSpec, Config, EthSpec};
 
 /// Message emitted when the VC detects the BN is using a different spec.

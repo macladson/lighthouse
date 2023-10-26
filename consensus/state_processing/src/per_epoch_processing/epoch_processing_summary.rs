@@ -3,7 +3,7 @@ use super::{
     base::{validator_statuses::InclusionInfo, TotalBalances, ValidatorStatus},
 };
 use crate::metrics;
-use std::sync::Arc;
+use triomphe::Arc;
 use types::{EthSpec, SyncCommittee};
 
 /// Provides a summary of validator participation during the epoch.

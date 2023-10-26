@@ -16,8 +16,8 @@ use slot_clock::SlotClock;
 use std::iter::FromIterator;
 use std::marker::PhantomData;
 use std::path::Path;
-use std::sync::Arc;
 use task_executor::TaskExecutor;
+use triomphe::Arc;
 use types::sidecar::Sidecar;
 use types::{
     attestation::Error as AttestationError, graffiti::GraffitiString, AbstractExecPayload, Address,

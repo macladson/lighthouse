@@ -183,7 +183,7 @@ mod tests {
     use super::*;
     use crate::rpc::protocol::*;
 
-    use std::sync::Arc;
+    use triomphe::Arc;
     use types::{Epoch, ForkContext, ForkName, Hash256, Slot};
     use unsigned_varint::codec::Uvi;
 

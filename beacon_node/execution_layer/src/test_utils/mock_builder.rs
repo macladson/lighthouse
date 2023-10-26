@@ -9,11 +9,11 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::future::Future;
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
-use std::sync::Arc;
 use std::time::Duration;
 use task_executor::TaskExecutor;
 use tempfile::NamedTempFile;
 use tree_hash::TreeHash;
+use triomphe::Arc;
 use types::builder_bid::{
     BuilderBid, BuilderBidCapella, BuilderBidDeneb, BuilderBidMerge, SignedBuilderBid,
 };

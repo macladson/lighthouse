@@ -29,10 +29,10 @@ use std::future::Future;
 use std::marker::PhantomData;
 use std::net::{IpAddr, Ipv4Addr};
 use std::str::FromStr;
-use std::sync::Arc;
 use std::time::Duration;
 use task_executor::test_utils::TestRuntime;
 use tempfile::{tempdir, TempDir};
+use triomphe::Arc;
 use types::graffiti::GraffitiString;
 
 const PASSWORD_BYTES: &[u8] = &[42, 50, 37];

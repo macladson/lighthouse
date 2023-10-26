@@ -22,3 +22,4 @@ tree_hash = { workspace = true }
 tokio = { workspace = true }
 slog = { workspace = true }
 int_to_bytes = { workspace = true }
+triomphe = { workspace = true }

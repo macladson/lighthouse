@@ -19,6 +19,7 @@ use std::fmt;
 use std::fmt::Debug;
 use std::sync::Arc;
 use task_executor::TaskExecutor;
+use triomphe::Arc as TArc;
 use types::beacon_block_body::{KzgCommitmentOpts, KzgCommitments};
 use types::blob_sidecar::{BlobIdentifier, BlobSidecar, FixedBlobSidecarList};
 use types::consts::deneb::MIN_EPOCHS_FOR_BLOB_SIDECARS_REQUESTS;
@@ -48,9 +49,9 @@ pub const STATE_LRU_CAPACITY: usize = 2;
 /// checking whether a "availability check" is required at all.
 pub struct DataAvailabilityChecker<T: BeaconChainTypes> {
     processing_cache: RwLock<ProcessingCache<T::EthSpec>>,
-    availability_cache: Arc<OverflowLRUCache<T>>,
+    availability_cache: TArc<OverflowLRUCache<T>>,
     slot_clock: T::SlotClock,
-    kzg: Option<Arc<Kzg>>,
+    kzg: Option<TArc<Kzg>>,
     log: Logger,
     spec: ChainSpec,
 }
@@ -79,7 +80,7 @@ impl<T: EthSpec> Debug for Availability<T> {
 impl<T: BeaconChainTypes> DataAvailabilityChecker<T> {
     pub fn new(
         slot_clock: T::SlotClock,
-        kzg: Option<Arc<Kzg>>,
+        kzg: Option<TArc<Kzg>>,
         store: BeaconStore<T>,
         log: &Logger,
         spec: ChainSpec,
@@ -87,7 +88,7 @@ impl<T: BeaconChainTypes> DataAvailabilityChecker<T> {
         let overflow_cache = OverflowLRUCache::new(OVERFLOW_LRU_CAPACITY, store, spec.clone())?;
         Ok(Self {
             processing_cache: <_>::default(),
-            availability_cache: Arc::new(overflow_cache),
+            availability_cache: TArc::new(overflow_cache),
             slot_clock,
             log: log.clone(),
             kzg,
@@ -438,7 +439,7 @@ pub fn start_availability_cache_maintenance_service<T: BeaconChainTypes>(
 
 async fn availability_cache_maintenance_service<T: BeaconChainTypes>(
     chain: Arc<BeaconChain<T>>,
-    overflow_cache: Arc<OverflowLRUCache<T>>,
+    overflow_cache: TArc<OverflowLRUCache<T>>,
 ) {
     let epoch_duration = chain.slot_clock.slot_duration() * T::EthSpec::slots_per_epoch() as u32;
     loop {
@@ -506,7 +507,7 @@ async fn availability_cache_maintenance_service<T: BeaconChainTypes>(
 #[derive(Clone, Debug, PartialEq)]
 pub struct AvailableBlock<E: EthSpec> {
     block_root: Hash256,
-    block: Arc<SignedBeaconBlock<E>>,
+    block: TArc<SignedBeaconBlock<E>>,
     blobs: Option<BlobSidecarList<E>>,
 }
 
@@ -514,7 +515,7 @@ impl<E: EthSpec> AvailableBlock<E> {
     pub fn block(&self) -> &SignedBeaconBlock<E> {
         &self.block
     }
-    pub fn block_cloned(&self) -> Arc<SignedBeaconBlock<E>> {
+    pub fn block_cloned(&self) -> TArc<SignedBeaconBlock<E>> {
         self.block.clone()
     }
 
@@ -526,7 +527,7 @@ impl<E: EthSpec> AvailableBlock<E> {
         self,
     ) -> (
         Hash256,
-        Arc<SignedBeaconBlock<E>>,
+        TArc<SignedBeaconBlock<E>>,
         Option<BlobSidecarList<E>>,
     ) {
         let AvailableBlock {
@@ -547,7 +548,7 @@ pub enum MaybeAvailableBlock<E: EthSpec> {
     /// This variant is not fully available and requires blobs to become fully available.
     AvailabilityPending {
         block_root: Hash256,
-        block: Arc<SignedBeaconBlock<E>>,
+        block: TArc<SignedBeaconBlock<E>>,
     },
 }
 

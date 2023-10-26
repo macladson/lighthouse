@@ -12,7 +12,7 @@ use parking_lot::{MappedRwLockReadGuard, RwLock, RwLockReadGuard, RwLockWriteGua
 use slog::{crit, debug, info, warn};
 use slot_clock::SlotClock;
 use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
+use triomphe::Arc;
 use types::{
     ChainSpec, Epoch, EthSpec, PublicKeyBytes, Slot, SyncDuty, SyncSelectionProof, SyncSubnetId,
 };

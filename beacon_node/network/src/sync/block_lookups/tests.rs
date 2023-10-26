@@ -3,7 +3,7 @@ use crate::network_beacon_processor::NetworkBeaconProcessor;
 use crate::service::RequestId;
 use crate::sync::manager::{RequestId as SyncId, SingleLookupReqId};
 use crate::NetworkMessage;
-use std::sync::Arc;
+use triomphe::Arc;
 
 use super::*;
 

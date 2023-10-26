@@ -1388,7 +1388,7 @@ pub mod serde_status_code {
 mod tests {
     use super::*;
     use ssz::Encode;
-    use std::sync::Arc;
+    use triomphe::Arc;
 
     #[test]
     fn query_vec() {

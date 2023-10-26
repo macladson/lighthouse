@@ -40,11 +40,11 @@ use std::{
     net::{IpAddr, SocketAddr},
     path::Path,
     pin::Pin,
-    sync::Arc,
     task::{Context, Poll},
     time::{Duration, Instant},
 };
 use tokio::sync::mpsc;
+use triomphe::Arc;
 use types::{EnrForkId, EthSpec};
 
 mod subnet_predicate;

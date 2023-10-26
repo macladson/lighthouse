@@ -2,8 +2,8 @@ use crate::{http_metrics::metrics, BeaconNodeFallback};
 use environment::RuntimeContext;
 use slog::debug;
 use slot_clock::SlotClock;
-use std::sync::Arc;
 use tokio::time::sleep;
+use triomphe::Arc;
 use types::EthSpec;
 
 /// The latency service will run 11/12ths of the way through the slot.

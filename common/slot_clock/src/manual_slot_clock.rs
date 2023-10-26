@@ -1,8 +1,8 @@
 use super::SlotClock;
 use parking_lot::RwLock;
 use std::convert::TryInto;
-use std::sync::Arc;
 use std::time::Duration;
+use triomphe::Arc;
 use types::Slot;
 
 /// Determines the present slot based upon a manually-incremented UNIX timestamp.

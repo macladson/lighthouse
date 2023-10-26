@@ -28,3 +28,4 @@ serde_json = { workspace = true }
 zip = { workspace = true }
 lazy_static = { workspace = true }
 parking_lot = { workspace = true }
+triomphe = { workspace = true }

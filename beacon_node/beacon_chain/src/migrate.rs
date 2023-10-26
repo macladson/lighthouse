@@ -6,13 +6,15 @@ use parking_lot::Mutex;
 use slog::{debug, error, info, warn, Logger};
 use std::collections::{HashMap, HashSet};
 use std::mem;
-use std::sync::{mpsc, Arc};
+use std::sync::mpsc;
+use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use store::hot_cold_store::{migrate_database, HotColdDBError};
 use store::iter::RootsIterator;
 use store::{Error, ItemStore, StoreItem, StoreOp};
 pub use store::{HotColdDB, MemoryStore};
+use triomphe::Arc as TArc;
 use types::{
     BeaconState, BeaconStateError, BeaconStateHash, Checkpoint, Epoch, EthSpec, Hash256,
     SignedBeaconBlockHash, Slot,
@@ -33,7 +35,7 @@ pub const DEFAULT_EPOCHS_PER_MIGRATION: u64 = 1;
 pub struct BackgroundMigrator<E: EthSpec, Hot: ItemStore<E>, Cold: ItemStore<E>> {
     db: Arc<HotColdDB<E, Hot, Cold>>,
     /// Record of when the last migration ran, for enforcing `epochs_per_migration`.
-    prev_migration: Arc<Mutex<PrevMigration>>,
+    prev_migration: TArc<Mutex<PrevMigration>>,
     #[allow(clippy::type_complexity)]
     tx_thread: Option<Mutex<(mpsc::Sender<Notification>, thread::JoinHandle<()>)>>,
     /// Genesis block root, for persisting the `PersistedBeaconChain`.
@@ -123,8 +125,8 @@ pub enum Notification {
 pub struct FinalizationNotification {
     finalized_state_root: BeaconStateHash,
     finalized_checkpoint: Checkpoint,
-    head_tracker: Arc<HeadTracker>,
-    prev_migration: Arc<Mutex<PrevMigration>>,
+    head_tracker: TArc<HeadTracker>,
+    prev_migration: TArc<Mutex<PrevMigration>>,
     genesis_block_root: Hash256,
 }
 
@@ -137,7 +139,7 @@ impl<E: EthSpec, Hot: ItemStore<E>, Cold: ItemStore<E>> BackgroundMigrator<E, Ho
         log: Logger,
     ) -> Self {
         // Estimate last migration run from DB split slot.
-        let prev_migration = Arc::new(Mutex::new(PrevMigration {
+        let prev_migration = TArc::new(Mutex::new(PrevMigration {
             epoch: db.get_split_slot().epoch(E::slots_per_epoch()),
             epochs_per_migration: config.epochs_per_migration,
         }));
@@ -164,7 +166,7 @@ impl<E: EthSpec, Hot: ItemStore<E>, Cold: ItemStore<E>> BackgroundMigrator<E, Ho
         &self,
         finalized_state_root: BeaconStateHash,
         finalized_checkpoint: Checkpoint,
-        head_tracker: Arc<HeadTracker>,
+        head_tracker: TArc<HeadTracker>,
     ) -> Result<(), BeaconChainError> {
         let notif = FinalizationNotification {
             finalized_state_root,
@@ -440,7 +442,7 @@ impl<E: EthSpec, Hot: ItemStore<E>, Cold: ItemStore<E>> BackgroundMigrator<E, Ho
     #[allow(clippy::too_many_arguments)]
     fn prune_abandoned_forks(
         store: Arc<HotColdDB<E, Hot, Cold>>,
-        head_tracker: Arc<HeadTracker>,
+        head_tracker: TArc<HeadTracker>,
         new_finalized_state_hash: BeaconStateHash,
         new_finalized_state: &BeaconState<E>,
         new_finalized_checkpoint: Checkpoint,
