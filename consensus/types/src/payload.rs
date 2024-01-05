@@ -40,6 +40,7 @@ pub trait ExecPayload<T: EthSpec>: Debug + Clone + PartialEq + Hash + TreeHash +
     /// fork-specific fields
     fn withdrawals_root(&self) -> Result<Hash256, Error>;
     fn blob_gas_used(&self) -> Result<u64, Error>;
+    fn execution_witness_root(&self) -> Result<Hash256, Error>;
 
     /// Is this a default payload with 0x0 roots for transactions and withdrawals?
     fn is_default_with_zero_roots(&self) -> bool;
@@ -83,12 +84,14 @@ pub trait AbstractExecPayload<T: EthSpec>:
     + TryInto<Self::Merge>
     + TryInto<Self::Capella>
     + TryInto<Self::Deneb>
+    + TryInto<Self::Electra>
 {
     type Ref<'a>: ExecPayload<T>
         + Copy
         + From<&'a Self::Merge>
         + From<&'a Self::Capella>
-        + From<&'a Self::Deneb>;
+        + From<&'a Self::Deneb>
+        + From<&'a Self::Electra>;
 
     type Merge: OwnedExecPayload<T>
         + Into<Self>
@@ -102,10 +105,14 @@ pub trait AbstractExecPayload<T: EthSpec>:
         + Into<Self>
         + for<'a> From<Cow<'a, ExecutionPayloadDeneb<T>>>
         + TryFrom<ExecutionPayloadHeaderDeneb<T>>;
+    type Electra: OwnedExecPayload<T>
+        + Into<Self>
+        + for<'a> From<Cow<'a, ExecutionPayloadElectra<T>>>
+        + TryFrom<ExecutionPayloadHeaderElectra<T>>;
 }
 
 #[superstruct(
-    variants(Merge, Capella, Deneb),
+    variants(Merge, Capella, Deneb, Electra),
     variant_attributes(
         derive(
             Debug,
@@ -146,6 +153,8 @@ pub struct FullPayload<T: EthSpec> {
     pub execution_payload: ExecutionPayloadCapella<T>,
     #[superstruct(only(Deneb), partial_getter(rename = "execution_payload_deneb"))]
     pub execution_payload: ExecutionPayloadDeneb<T>,
+    #[superstruct(only(Electra), partial_getter(rename = "execution_payload_electra"))]
+    pub execution_payload: ExecutionPayloadElectra<T>,
 }
 
 impl<T: EthSpec> From<FullPayload<T>> for ExecutionPayload<T> {
@@ -252,6 +261,9 @@ impl<T: EthSpec> ExecPayload<T> for FullPayload<T> {
             FullPayload::Deneb(ref inner) => {
                 Ok(inner.execution_payload.withdrawals.tree_hash_root())
             }
+            FullPayload::Electra(ref inner) => {
+                Ok(inner.execution_payload.withdrawals.tree_hash_root())
+            }
         }
     }
 
@@ -259,6 +271,18 @@ impl<T: EthSpec> ExecPayload<T> for FullPayload<T> {
         match self {
             FullPayload::Merge(_) | FullPayload::Capella(_) => Err(Error::IncorrectStateVariant),
             FullPayload::Deneb(ref inner) => Ok(inner.execution_payload.blob_gas_used),
+            FullPayload::Electra(ref inner) => Ok(inner.execution_payload.blob_gas_used),
+        }
+    }
+
+    fn execution_witness_root(&self) -> Result<Hash256, Error> {
+        match self {
+            FullPayload::Merge(_) => Err(Error::IncorrectStateVariant),
+            FullPayload::Capella(_) => Err(Error::IncorrectStateVariant),
+            FullPayload::Deneb(_) => Err(Error::IncorrectStateVariant),
+            FullPayload::Electra(ref inner) => {
+                Ok(inner.execution_payload.execution_witness.tree_hash_root())
+            }
         }
     }
 
@@ -288,6 +312,7 @@ impl<T: EthSpec> FullPayload<T> {
             ForkName::Merge => Ok(FullPayloadMerge::default().into()),
             ForkName::Capella => Ok(FullPayloadCapella::default().into()),
             ForkName::Deneb => Ok(FullPayloadDeneb::default().into()),
+            ForkName::Electra => Ok(FullPayloadElectra::default().into()),
         }
     }
 }
@@ -377,6 +402,9 @@ impl<'b, T: EthSpec> ExecPayload<T> for FullPayloadRef<'b, T> {
             FullPayloadRef::Deneb(inner) => {
                 Ok(inner.execution_payload.withdrawals.tree_hash_root())
             }
+            FullPayloadRef::Electra(inner) => {
+                Ok(inner.execution_payload.withdrawals.tree_hash_root())
+            }
         }
     }
 
@@ -386,6 +414,18 @@ impl<'b, T: EthSpec> ExecPayload<T> for FullPayloadRef<'b, T> {
                 Err(Error::IncorrectStateVariant)
             }
             FullPayloadRef::Deneb(inner) => Ok(inner.execution_payload.blob_gas_used),
+            FullPayloadRef::Electra(inner) => Ok(inner.execution_payload.blob_gas_used),
+        }
+    }
+
+    fn execution_witness_root(&self) -> Result<Hash256, Error> {
+        match self {
+            FullPayloadRef::Merge(_) => Err(Error::IncorrectStateVariant),
+            FullPayloadRef::Capella(_) => Err(Error::IncorrectStateVariant),
+            FullPayloadRef::Deneb(_) => Err(Error::IncorrectStateVariant),
+            FullPayloadRef::Electra(inner) => {
+                Ok(inner.execution_payload.execution_witness.tree_hash_root())
+            }
         }
     }
 
@@ -407,6 +447,7 @@ impl<T: EthSpec> AbstractExecPayload<T> for FullPayload<T> {
     type Merge = FullPayloadMerge<T>;
     type Capella = FullPayloadCapella<T>;
     type Deneb = FullPayloadDeneb<T>;
+    type Electra = FullPayloadElectra<T>;
 }
 
 impl<T: EthSpec> From<ExecutionPayload<T>> for FullPayload<T> {
@@ -425,7 +466,7 @@ impl<T: EthSpec> TryFrom<ExecutionPayloadHeader<T>> for FullPayload<T> {
 }
 
 #[superstruct(
-    variants(Merge, Capella, Deneb),
+    variants(Merge, Capella, Deneb, Electra),
     variant_attributes(
         derive(
             Debug,
@@ -465,6 +506,8 @@ pub struct BlindedPayload<T: EthSpec> {
     pub execution_payload_header: ExecutionPayloadHeaderCapella<T>,
     #[superstruct(only(Deneb), partial_getter(rename = "execution_payload_deneb"))]
     pub execution_payload_header: ExecutionPayloadHeaderDeneb<T>,
+    #[superstruct(only(Electra), partial_getter(rename = "execution_payload_electra"))]
+    pub execution_payload_header: ExecutionPayloadHeaderElectra<T>,
 }
 
 impl<'a, T: EthSpec> From<BlindedPayloadRef<'a, T>> for BlindedPayload<T> {
@@ -547,6 +590,9 @@ impl<T: EthSpec> ExecPayload<T> for BlindedPayload<T> {
                 Ok(inner.execution_payload_header.withdrawals_root)
             }
             BlindedPayload::Deneb(ref inner) => Ok(inner.execution_payload_header.withdrawals_root),
+            BlindedPayload::Electra(ref inner) => {
+                Ok(inner.execution_payload_header.withdrawals_root)
+            }
         }
     }
 
@@ -556,6 +602,18 @@ impl<T: EthSpec> ExecPayload<T> for BlindedPayload<T> {
                 Err(Error::IncorrectStateVariant)
             }
             BlindedPayload::Deneb(ref inner) => Ok(inner.execution_payload_header.blob_gas_used),
+            BlindedPayload::Electra(ref inner) => Ok(inner.execution_payload_header.blob_gas_used),
+        }
+    }
+
+    fn execution_witness_root(&self) -> Result<Hash256, Error> {
+        match self {
+            BlindedPayload::Merge(_) => Err(Error::IncorrectStateVariant),
+            BlindedPayload::Capella(_) => Err(Error::IncorrectStateVariant),
+            BlindedPayload::Deneb(_) => Err(Error::IncorrectStateVariant),
+            BlindedPayload::Electra(ref inner) => {
+                Ok(inner.execution_payload_header.execution_witness_root)
+            }
         }
     }
 
@@ -644,6 +702,9 @@ impl<'b, T: EthSpec> ExecPayload<T> for BlindedPayloadRef<'b, T> {
                 Ok(inner.execution_payload_header.withdrawals_root)
             }
             BlindedPayloadRef::Deneb(inner) => Ok(inner.execution_payload_header.withdrawals_root),
+            BlindedPayloadRef::Electra(inner) => {
+                Ok(inner.execution_payload_header.withdrawals_root)
+            }
         }
     }
 
@@ -653,6 +714,18 @@ impl<'b, T: EthSpec> ExecPayload<T> for BlindedPayloadRef<'b, T> {
                 Err(Error::IncorrectStateVariant)
             }
             BlindedPayloadRef::Deneb(inner) => Ok(inner.execution_payload_header.blob_gas_used),
+            BlindedPayloadRef::Electra(inner) => Ok(inner.execution_payload_header.blob_gas_used),
+        }
+    }
+
+    fn execution_witness_root(&self) -> Result<Hash256, Error> {
+        match self {
+            BlindedPayloadRef::Merge(_) => Err(Error::IncorrectStateVariant),
+            BlindedPayloadRef::Capella(_) => Err(Error::IncorrectStateVariant),
+            BlindedPayloadRef::Deneb(_) => Err(Error::IncorrectStateVariant),
+            BlindedPayloadRef::Electra(inner) => {
+                Ok(inner.execution_payload_header.execution_witness_root)
+            }
         }
     }
 
@@ -682,7 +755,8 @@ macro_rules! impl_exec_payload_common {
      $is_default_with_empty_roots:block,
      $f:block,
      $g:block,
-     $h:block) => {
+     $h:block,
+     $j:block) => {
         impl<T: EthSpec> ExecPayload<T> for $wrapper_type<T> {
             fn block_type() -> BlockType {
                 BlockType::$block_type_variant
@@ -745,6 +819,11 @@ macro_rules! impl_exec_payload_common {
                 let h = $h;
                 h(self)
             }
+
+            fn execution_witness_root(&self) -> Result<Hash256, Error> {
+                let j = $j;
+                j(self)
+            }
         }
 
         impl<T: EthSpec> From<$wrapped_type<T>> for $wrapper_type<T> {
@@ -788,6 +867,14 @@ macro_rules! impl_exec_payload_for_fork {
                     |payload: &$wrapper_type_header<T>| {
                         let wrapper_ref_type = BlindedPayloadRef::$fork_variant(&payload);
                         wrapper_ref_type.blob_gas_used()
+                    };
+                c
+            },
+            {
+                let c: for<'a> fn(&'a $wrapper_type_header<T>) -> Result<Hash256, Error> =
+                    |payload: &$wrapper_type_header<T>| {
+                        let wrapper_ref_type = BlindedPayloadRef::$fork_variant(&payload);
+                        wrapper_ref_type.execution_witness_root()
                     };
                 c
             }
@@ -877,6 +964,14 @@ macro_rules! impl_exec_payload_for_fork {
                         wrapper_ref_type.blob_gas_used()
                     };
                 c
+            },
+            {
+                let c: for<'a> fn(&'a $wrapper_type_full<T>) -> Result<Hash256, Error> =
+                    |payload: &$wrapper_type_full<T>| {
+                        let wrapper_ref_type = FullPayloadRef::$fork_variant(&payload);
+                        wrapper_ref_type.execution_witness_root()
+                    };
+                c
             }
         );
 
@@ -945,12 +1040,20 @@ impl_exec_payload_for_fork!(
     ExecutionPayloadDeneb,
     Deneb
 );
+impl_exec_payload_for_fork!(
+    BlindedPayloadElectra,
+    FullPayloadElectra,
+    ExecutionPayloadHeaderElectra,
+    ExecutionPayloadElectra,
+    Electra
+);
 
 impl<T: EthSpec> AbstractExecPayload<T> for BlindedPayload<T> {
     type Ref<'a> = BlindedPayloadRef<'a, T>;
     type Merge = BlindedPayloadMerge<T>;
     type Capella = BlindedPayloadCapella<T>;
     type Deneb = BlindedPayloadDeneb<T>;
+    type Electra = BlindedPayloadElectra<T>;
 }
 
 impl<T: EthSpec> From<ExecutionPayload<T>> for BlindedPayload<T> {
@@ -982,6 +1085,11 @@ impl<T: EthSpec> From<ExecutionPayloadHeader<T>> for BlindedPayload<T> {
                     execution_payload_header,
                 })
             }
+            ExecutionPayloadHeader::Electra(execution_payload_header) => {
+                Self::Electra(BlindedPayloadElectra {
+                    execution_payload_header,
+                })
+            }
         }
     }
 }
@@ -997,6 +1105,9 @@ impl<T: EthSpec> From<BlindedPayload<T>> for ExecutionPayloadHeader<T> {
             }
             BlindedPayload::Deneb(blinded_payload) => {
                 ExecutionPayloadHeader::Deneb(blinded_payload.execution_payload_header)
+            }
+            BlindedPayload::Electra(blinded_payload) => {
+                ExecutionPayloadHeader::Electra(blinded_payload.execution_payload_header)
             }
         }
     }

@@ -19,7 +19,8 @@ use types::ChainSpec;
 use types::{
     BlobSidecar, EthSpec, ForkContext, ForkName, Hash256, LightClientBootstrap,
     RuntimeVariableList, SignedBeaconBlock, SignedBeaconBlockAltair, SignedBeaconBlockBase,
-    SignedBeaconBlockCapella, SignedBeaconBlockDeneb, SignedBeaconBlockMerge,
+    SignedBeaconBlockCapella, SignedBeaconBlockDeneb, SignedBeaconBlockElectra,
+    SignedBeaconBlockMerge,
 };
 use unsigned_varint::codec::Uvi;
 
@@ -405,6 +406,9 @@ fn context_bytes<T: EthSpec>(
                     SignedBeaconBlock::Deneb { .. } => {
                         fork_context.to_context_bytes(ForkName::Deneb)
                     }
+                    SignedBeaconBlock::Electra { .. } => {
+                        fork_context.to_context_bytes(ForkName::Electra)
+                    }
                     SignedBeaconBlock::Capella { .. } => {
                         fork_context.to_context_bytes(ForkName::Capella)
                     }
@@ -417,7 +421,10 @@ fn context_bytes<T: EthSpec>(
                     SignedBeaconBlock::Base { .. } => Some(fork_context.genesis_context_bytes()),
                 };
             }
-            if let RPCResponse::BlobsByRange(_) | RPCResponse::BlobsByRoot(_) = rpc_variant {
+            //TODO(mac) check this impl
+            if let RPCResponse::BlobsByRange(_ref_box_blob)
+            | RPCResponse::BlobsByRoot(_ref_box_blob) = rpc_variant
+            {
                 return fork_context.to_context_bytes(ForkName::Deneb);
             }
         }
@@ -616,6 +623,11 @@ fn handle_rpc_response<T: EthSpec>(
             Some(ForkName::Deneb) => Ok(Some(RPCResponse::BlocksByRange(Arc::new(
                 SignedBeaconBlock::Deneb(SignedBeaconBlockDeneb::from_ssz_bytes(decoded_buffer)?),
             )))),
+            Some(ForkName::Electra) => Ok(Some(RPCResponse::BlocksByRange(Arc::new(
+                SignedBeaconBlock::Electra(SignedBeaconBlockElectra::from_ssz_bytes(
+                    decoded_buffer,
+                )?),
+            )))),
             None => Err(RPCError::ErrorResponse(
                 RPCResponseErrorCode::InvalidRequest,
                 format!(
@@ -641,6 +653,11 @@ fn handle_rpc_response<T: EthSpec>(
             )))),
             Some(ForkName::Deneb) => Ok(Some(RPCResponse::BlocksByRoot(Arc::new(
                 SignedBeaconBlock::Deneb(SignedBeaconBlockDeneb::from_ssz_bytes(decoded_buffer)?),
+            )))),
+            Some(ForkName::Electra) => Ok(Some(RPCResponse::BlocksByRoot(Arc::new(
+                SignedBeaconBlock::Electra(SignedBeaconBlockElectra::from_ssz_bytes(
+                    decoded_buffer,
+                )?),
             )))),
             None => Err(RPCError::ErrorResponse(
                 RPCResponseErrorCode::InvalidRequest,
@@ -700,11 +717,13 @@ mod tests {
         let merge_fork_epoch = Epoch::new(2);
         let capella_fork_epoch = Epoch::new(3);
         let deneb_fork_epoch = Epoch::new(4);
+        let electra_fork_epoch = Epoch::new(5);
 
         chain_spec.altair_fork_epoch = Some(altair_fork_epoch);
         chain_spec.bellatrix_fork_epoch = Some(merge_fork_epoch);
         chain_spec.capella_fork_epoch = Some(capella_fork_epoch);
         chain_spec.deneb_fork_epoch = Some(deneb_fork_epoch);
+        chain_spec.electra_fork_epoch = Some(electra_fork_epoch);
 
         let current_slot = match fork_name {
             ForkName::Base => Slot::new(0),
@@ -712,6 +731,7 @@ mod tests {
             ForkName::Merge => merge_fork_epoch.start_slot(Spec::slots_per_epoch()),
             ForkName::Capella => capella_fork_epoch.start_slot(Spec::slots_per_epoch()),
             ForkName::Deneb => deneb_fork_epoch.start_slot(Spec::slots_per_epoch()),
+            ForkName::Electra => electra_fork_epoch.start_slot(Spec::slots_per_epoch()),
         };
         ForkContext::new::<Spec>(current_slot, Hash256::zero(), &chain_spec)
     }

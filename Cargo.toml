@@ -228,6 +228,10 @@ validator_client = { path = "validator_client" }
 validator_dir = { path = "common/validator_dir" }
 warp_utils = { path = "common/warp_utils" }
 
+[patch]
+[patch.crates-io]
+ssz_types = { git = "https://github.com/macladson/ssz_types.git", branch = "optional" }
+
 [profile.maxperf]
 inherits = "release"
 lto = "fat"

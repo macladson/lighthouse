@@ -1,0 +1,23 @@
+# Minimal preset - Electra
+
+# Verkle
+# ---------------------------------------------------------------
+# `uint64(2**16)`
+MAX_STEMS: 65536
+# `uint64(33)`
+MAX_COMMITTMENTS_PER_STEM: 33
+# `uint64(256)
+MAX_VERKLE_WIDTH: 256
+# `uint64(8)
+IPA_PROOF_DEPTH: 8
+
+# Helper
+# ---------------------------------------------------------------
+# `uint64(32)`
+BYTES_PER_BANDERWAGON_ELEMENT: 32
+# `uint64(31)
+MAX_STEM_LENGTH: 31
+# `uint64(MAX_STEMS * MAX_COMMITTMENTS_PER_STEM)`
+MAX_COMMITTMENTS: 2162688
+# `uint64(32)`
+BYTES_PER_SUFFIX_STATE_DIFF_VALUE: 32

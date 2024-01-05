@@ -3,8 +3,9 @@ use crate::*;
 use safe_arith::SafeArith;
 use serde::{Deserialize, Serialize};
 use ssz_types::typenum::{
-    bit::B0, UInt, Unsigned, U0, U1024, U1048576, U1073741824, U1099511627776, U128, U131072, U16,
-    U16777216, U2, U2048, U256, U32, U4, U4096, U512, U6, U625, U64, U65536, U8, U8192,
+    bit::B0, Prod, UInt, Unsigned, U0, U1024, U1048576, U1073741824, U1099511627776, U128, U131072,
+    U16, U16777216, U2, U2048, U256, U31, U32, U33, U4, U4096, U512, U6, U625, U64, U65536, U8,
+    U8192,
 };
 use ssz_types::typenum::{U17, U9};
 use std::fmt::{self, Debug};
@@ -133,6 +134,18 @@ pub trait EthSpec:
     ///
     /// Must be set to `BytesPerFieldElement * FieldElementsPerBlob`.
     type BytesPerBlob: Unsigned + Clone + Sync + Send + Debug + PartialEq;
+
+    /*
+     * New in Electra
+     */
+    type BytesPerBanderwagonElement: Unsigned + Clone + Sync + Send + Debug + PartialEq;
+    type MaxStems: Unsigned + Clone + Sync + Send + Debug + PartialEq;
+    type MaxStemLength: Unsigned + Clone + Sync + Send + Debug + PartialEq;
+    type MaxCommittmentsPerStem: Unsigned + Clone + Sync + Send + Debug + PartialEq;
+    type MaxCommittments: Unsigned + Clone + Sync + Send + Debug + PartialEq;
+    type BytesPerSuffixStateDiffValue: Unsigned + Clone + Sync + Send + Debug + PartialEq;
+    type MaxVerkleWidth: Unsigned + Clone + Sync + Send + Debug + PartialEq;
+    type IpaProofDepth: Unsigned + Clone + Sync + Send + Debug + PartialEq;
 
     fn default_spec() -> ChainSpec;
 
@@ -273,9 +286,42 @@ pub trait EthSpec:
     fn bytes_per_blob() -> usize {
         Self::BytesPerBlob::to_usize()
     }
+
     /// Returns the `KZG_COMMITMENT_INCLUSION_PROOF_DEPTH` preset for this specification.
     fn kzg_proof_inclusion_proof_depth() -> usize {
         Self::KzgCommitmentInclusionProofDepth::to_usize()
+    }
+
+    fn bytes_per_banderwagon_element() -> usize {
+        Self::BytesPerBanderwagonElement::to_usize()
+    }
+
+    fn max_stems() -> usize {
+        Self::MaxStems::to_usize()
+    }
+
+    fn max_stem_length() -> usize {
+        Self::MaxStemLength::to_usize()
+    }
+
+    fn max_committments_per_stem() -> usize {
+        Self::MaxCommittmentsPerStem::to_usize()
+    }
+
+    fn max_committments() -> usize {
+        Self::MaxCommittments::to_usize()
+    }
+
+    fn bytes_per_suffix_state_diff_value() -> usize {
+        Self::BytesPerSuffixStateDiffValue::to_usize()
+    }
+
+    fn max_verkle_width() -> usize {
+        Self::MaxVerkleWidth::to_usize()
+    }
+
+    fn ipa_proof_depth() -> usize {
+        Self::IpaProofDepth::to_usize()
     }
 }
 
@@ -327,6 +373,14 @@ impl EthSpec for MainnetEthSpec {
     type SlotsPerEth1VotingPeriod = U2048; // 64 epochs * 32 slots per epoch
     type MaxBlsToExecutionChanges = U16;
     type MaxWithdrawalsPerPayload = U16;
+    type BytesPerBanderwagonElement = U32;
+    type MaxStems = U65536;
+    type MaxStemLength = U31;
+    type MaxCommittmentsPerStem = U33;
+    type MaxCommittments = Prod<Self::MaxStems, Self::MaxCommittmentsPerStem>;
+    type BytesPerSuffixStateDiffValue = U32;
+    type MaxVerkleWidth = U256;
+    type IpaProofDepth = U8;
 
     fn default_spec() -> ChainSpec {
         ChainSpec::mainnet()
@@ -378,7 +432,15 @@ impl EthSpec for MinimalEthSpec {
         MaxExtraDataBytes,
         MaxBlsToExecutionChanges,
         MaxBlobsPerBlock,
-        BytesPerFieldElement
+        BytesPerFieldElement,
+        BytesPerBanderwagonElement,
+        MaxStems,
+        MaxStemLength,
+        MaxCommittmentsPerStem,
+        MaxCommittments,
+        BytesPerSuffixStateDiffValue,
+        MaxVerkleWidth,
+        IpaProofDepth
     });
 
     fn default_spec() -> ChainSpec {
@@ -430,6 +492,14 @@ impl EthSpec for GnosisEthSpec {
     type BytesPerFieldElement = U32;
     type BytesPerBlob = U131072;
     type KzgCommitmentInclusionProofDepth = U17;
+    type BytesPerBanderwagonElement = U32;
+    type MaxStems = U65536;
+    type MaxStemLength = U31;
+    type MaxCommittmentsPerStem = U33;
+    type MaxCommittments = Prod<Self::MaxStems, Self::MaxCommittmentsPerStem>;
+    type BytesPerSuffixStateDiffValue = U32;
+    type MaxVerkleWidth = U256;
+    type IpaProofDepth = U8;
 
     fn default_spec() -> ChainSpec {
         ChainSpec::gnosis()

@@ -813,8 +813,9 @@ pub fn get_config<E: EthSpec>(
     }
 
     // Optimistic finalized sync.
-    client_config.chain.optimistic_finalized_sync =
-        !cli_args.is_present("disable-optimistic-finalized-sync");
+    // TODO(mac): Re-enabled optimistic sync once block hash is computed properly.
+    client_config.chain.optimistic_finalized_sync = false;
+    //client_config.chain.optimistic_finalized_sync = !cli_args.is_present("disable-optimistic-finalized-sync");
 
     if cli_args.is_present("genesis-backfill") {
         client_config.chain.genesis_backfill = true;

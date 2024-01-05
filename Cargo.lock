@@ -7490,8 +7490,7 @@ dependencies = [
 [[package]]
 name = "ssz_types"
 version = "0.5.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "382939886cb24ee8ac885d09116a60f6262d827c7a9e36012b4f6d3d0116d0b3"
+source = "git+https://github.com/macladson/ssz_types.git?branch=optional#6a187e66213d42c748e477585ec43e79d057f2cf"
 dependencies = [
  "arbitrary",
  "derivative",

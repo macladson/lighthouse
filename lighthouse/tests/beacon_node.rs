@@ -2420,14 +2420,14 @@ fn multiple_http_enabled_flags() {
         });
 }
 
-#[test]
-fn optimistic_finalized_sync_default() {
-    CommandLineTest::new()
-        .run_with_zero_port()
-        .with_config(|config| {
-            assert!(config.chain.optimistic_finalized_sync);
-        });
-}
+//#[test]
+//fn optimistic_finalized_sync_default() {
+//    CommandLineTest::new()
+//        .run_with_zero_port()
+//        .with_config(|config| {
+//            assert!(config.chain.optimistic_finalized_sync);
+//        });
+//}
 
 #[test]
 fn disable_optimistic_finalized_sync() {
