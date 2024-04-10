@@ -708,7 +708,7 @@ impl<E: EthSpec> OperationPool<E> {
 }
 
 /// Filter up to a maximum number of operations out of an iterator.
-fn filter_limit_operations<'a, T: 'a, V: 'a, I, F, G>(
+fn filter_limit_operations<'a, T, V: 'a, I, F, G>(
     operations: I,
     filter: F,
     mapping: G,
@@ -718,7 +718,7 @@ where
     I: IntoIterator<Item = &'a T>,
     F: Fn(&T) -> bool,
     G: Fn(&T) -> V,
-    T: Clone,
+    T: Clone + 'a,
 {
     operations
         .into_iter()
