@@ -18,6 +18,7 @@ use types::{
     BeaconState,
 };
 
+
 #[derive(Debug, Clone, PartialEq, Decode, Encode, CompareFields)]
 pub struct Deltas {
     #[compare_fields(as_slice)]
