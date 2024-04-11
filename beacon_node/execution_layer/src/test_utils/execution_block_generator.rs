@@ -17,6 +17,7 @@ use serde::{Deserialize, Serialize};
 use ssz::Decode;
 use ssz_types::VariableList;
 use std::collections::HashMap;
+use std::str::FromStr;
 use std::sync::Arc;
 use tree_hash::TreeHash;
 use tree_hash_derive::TreeHash;
@@ -27,6 +28,8 @@ use types::{
 };
 
 use super::DEFAULT_TERMINAL_BLOCK;
+pub const DEFAULT_EXECUTION_PAYLOAD_TRANSACTIONS_ROOT: &str =
+    "0x7ffe241ea60187fdb0187bfa22de35d1f9bed7ab061d9401fd47e34a54fbede1";
 
 const TEST_BLOB_BUNDLE: &[u8] = include_bytes!("fixtures/mainnet/test_blobs_bundle.ssz");
 
@@ -91,7 +94,14 @@ impl<E: EthSpec> Block<E> {
     pub fn as_execution_block_with_tx(&self) -> Option<ExecutionBlockWithTransactions<E>> {
         match self {
             Block::PoS(payload) => Some(payload.clone().try_into().unwrap()),
-            Block::PoW(_) => None,
+            Block::PoW(block) => Some(
+                ExecutionPayload::Merge(ExecutionPayloadMerge {
+                    block_hash: block.block_hash,
+                    ..Default::default()
+                })
+                .try_into()
+                .unwrap(),
+            ),
         }
     }
 }
@@ -176,21 +186,9 @@ impl<E: EthSpec> ExecutionBlockGenerator<E> {
             rng: make_rng(),
         };
 
-        //gen.insert_pow_block(0).unwrap();
-        // Merge from genesis
-        gen.insert_genesis_pos_block().unwrap();
+        gen.insert_pow_block(0).unwrap();
 
         gen
-    }
-
-    pub fn insert_genesis_pos_block(&mut self) -> Result<(), String> {
-        // Insert block into block tree.
-        self.insert_block(Block::PoS(ExecutionPayloadMerge::default().into()))?;
-
-        // Set block has head.
-        self.head_block = Some(Block::PoS(ExecutionPayloadMerge::default().into()));
-
-        Ok(())
     }
 
     pub fn latest_block(&self) -> Option<Block<E>> {
@@ -797,6 +795,8 @@ pub fn generate_genesis_header<E: EthSpec>(
             if post_transition_merge {
                 let mut header = ExecutionPayloadHeader::Merge(<_>::default());
                 *header.block_hash_mut() = genesis_block_hash.unwrap_or_default();
+                *header.transactions_root_mut() =
+                    Hash256::from_str(DEFAULT_EXECUTION_PAYLOAD_TRANSACTIONS_ROOT).unwrap();
                 Some(header)
             } else {
                 Some(ExecutionPayloadHeader::<E>::Merge(<_>::default()))
@@ -805,16 +805,22 @@ pub fn generate_genesis_header<E: EthSpec>(
         ForkName::Capella => {
             let mut header = ExecutionPayloadHeader::Capella(<_>::default());
             *header.block_hash_mut() = genesis_block_hash.unwrap_or_default();
+            *header.transactions_root_mut() =
+                Hash256::from_str(DEFAULT_EXECUTION_PAYLOAD_TRANSACTIONS_ROOT).unwrap();
             Some(header)
         }
         ForkName::Deneb => {
             let mut header = ExecutionPayloadHeader::Deneb(<_>::default());
             *header.block_hash_mut() = genesis_block_hash.unwrap_or_default();
+            *header.transactions_root_mut() =
+                Hash256::from_str(DEFAULT_EXECUTION_PAYLOAD_TRANSACTIONS_ROOT).unwrap();
             Some(header)
         }
         ForkName::Electra => {
             let mut header = ExecutionPayloadHeader::Electra(<_>::default());
             *header.block_hash_mut() = genesis_block_hash.unwrap_or_default();
+            *header.transactions_root_mut() =
+                Hash256::from_str(DEFAULT_EXECUTION_PAYLOAD_TRANSACTIONS_ROOT).unwrap();
             Some(header)
         }
     }
