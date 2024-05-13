@@ -230,13 +230,34 @@ impl DenebPreset {
 #[serde(rename_all = "UPPERCASE")]
 pub struct ElectraPreset {
     #[serde(with = "serde_utils::quoted_u64")]
-    pub electra_placeholder: u64,
+    pub bytes_per_banderwagon_element: u64,
+    #[serde(with = "serde_utils::quoted_u64")]
+    pub max_stems: u64,
+    #[serde(with = "serde_utils::quoted_u64")]
+    pub max_stem_length: u64,
+    #[serde(with = "serde_utils::quoted_u64")]
+    pub max_committments_per_stem: u64,
+    #[serde(with = "serde_utils::quoted_u64")]
+    pub max_committments: u64,
+    #[serde(with = "serde_utils::quoted_u64")]
+    pub bytes_per_suffix_state_diff_value: u64,
+    #[serde(with = "serde_utils::quoted_u64")]
+    pub max_verkle_width: u64,
+    #[serde(with = "serde_utils::quoted_u64")]
+    pub ipa_proof_depth: u64,
 }
 
 impl ElectraPreset {
     pub fn from_chain_spec<E: EthSpec>(_spec: &ChainSpec) -> Self {
         Self {
-            electra_placeholder: 0,
+            bytes_per_banderwagon_element: E::bytes_per_banderwagon_element() as u64,
+            max_stems: E::max_stems() as u64,
+            max_stem_length: E::max_stem_length() as u64,
+            max_committments_per_stem: E::max_committments_per_stem() as u64,
+            max_committments: E::max_committments() as u64,
+            bytes_per_suffix_state_diff_value: E::bytes_per_suffix_state_diff_value() as u64,
+            max_verkle_width: E::max_verkle_width() as u64,
+            ipa_proof_depth: E::ipa_proof_depth() as u64,
         }
     }
 }

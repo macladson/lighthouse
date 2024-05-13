@@ -569,6 +569,10 @@ pub async fn handle_rpc<E: EthSpec>(
                                 .withdrawals()
                                 .ok()
                                 .map(|withdrawals| VariableList::from(withdrawals.clone())),
+                            execution_witness: block
+                                .execution_witness()
+                                .ok()
+                                .map(|witness| witness.clone().into()),
                         }));
                     }
                     None => response.push(None),

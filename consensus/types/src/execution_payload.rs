@@ -89,6 +89,8 @@ pub struct ExecutionPayload<E: EthSpec> {
     #[superstruct(only(Deneb, Electra), partial_getter(copy))]
     #[serde(with = "serde_utils::quoted_u64")]
     pub excess_blob_gas: u64,
+    #[superstruct(only(Electra))]
+    pub execution_witness: ExecutionWitness<E>,
 }
 
 impl<'a, E: EthSpec> ExecutionPayloadRef<'a, E> {

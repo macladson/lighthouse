@@ -39,6 +39,7 @@ pub trait ExecPayload<E: EthSpec>: Debug + Clone + PartialEq + Hash + TreeHash +
     /// fork-specific fields
     fn withdrawals_root(&self) -> Result<Hash256, Error>;
     fn blob_gas_used(&self) -> Result<u64, Error>;
+    fn execution_witness_root(&self) -> Result<Hash256, Error>;
 
     /// Is this a default payload with 0x0 roots for transactions and withdrawals?
     fn is_default_with_zero_roots(&self) -> bool;
@@ -273,6 +274,17 @@ impl<E: EthSpec> ExecPayload<E> for FullPayload<E> {
         }
     }
 
+    fn execution_witness_root(&self) -> Result<Hash256, Error> {
+        match self {
+            FullPayload::Merge(_) => Err(Error::IncorrectStateVariant),
+            FullPayload::Capella(_) => Err(Error::IncorrectStateVariant),
+            FullPayload::Deneb(_) => Err(Error::IncorrectStateVariant),
+            FullPayload::Electra(ref inner) => {
+                Ok(inner.execution_payload.execution_witness.tree_hash_root())
+            }
+        }
+    }
+
     fn is_default_with_zero_roots<'a>(&'a self) -> bool {
         map_full_payload_ref!(&'a _, self.to_ref(), move |payload, cons| {
             cons(payload);
@@ -402,6 +414,17 @@ impl<'b, E: EthSpec> ExecPayload<E> for FullPayloadRef<'b, E> {
             }
             FullPayloadRef::Deneb(inner) => Ok(inner.execution_payload.blob_gas_used),
             FullPayloadRef::Electra(inner) => Ok(inner.execution_payload.blob_gas_used),
+        }
+    }
+
+    fn execution_witness_root(&self) -> Result<Hash256, Error> {
+        match self {
+            FullPayloadRef::Merge(_) => Err(Error::IncorrectStateVariant),
+            FullPayloadRef::Capella(_) => Err(Error::IncorrectStateVariant),
+            FullPayloadRef::Deneb(_) => Err(Error::IncorrectStateVariant),
+            FullPayloadRef::Electra(inner) => {
+                Ok(inner.execution_payload.execution_witness.tree_hash_root())
+            }
         }
     }
 
@@ -582,6 +605,17 @@ impl<E: EthSpec> ExecPayload<E> for BlindedPayload<E> {
         }
     }
 
+    fn execution_witness_root(&self) -> Result<Hash256, Error> {
+        match self {
+            BlindedPayload::Merge(_) => Err(Error::IncorrectStateVariant),
+            BlindedPayload::Capella(_) => Err(Error::IncorrectStateVariant),
+            BlindedPayload::Deneb(_) => Err(Error::IncorrectStateVariant),
+            BlindedPayload::Electra(ref inner) => {
+                Ok(inner.execution_payload_header.execution_witness_root)
+            }
+        }
+    }
+
     fn is_default_with_zero_roots(&self) -> bool {
         self.to_ref().is_default_with_zero_roots()
     }
@@ -683,6 +717,17 @@ impl<'b, E: EthSpec> ExecPayload<E> for BlindedPayloadRef<'b, E> {
         }
     }
 
+    fn execution_witness_root(&self) -> Result<Hash256, Error> {
+        match self {
+            BlindedPayloadRef::Merge(_) => Err(Error::IncorrectStateVariant),
+            BlindedPayloadRef::Capella(_) => Err(Error::IncorrectStateVariant),
+            BlindedPayloadRef::Deneb(_) => Err(Error::IncorrectStateVariant),
+            BlindedPayloadRef::Electra(inner) => {
+                Ok(inner.execution_payload_header.execution_witness_root)
+            }
+        }
+    }
+
     fn is_default_with_zero_roots<'a>(&'a self) -> bool {
         map_blinded_payload_ref!(&'b _, self, move |payload, cons| {
             cons(payload);
@@ -709,7 +754,8 @@ macro_rules! impl_exec_payload_common {
      $is_default_with_empty_roots:block,
      $f:block,
      $g:block,
-     $h:block) => {
+     $h:block,
+     $i:block) => {
         impl<E: EthSpec> ExecPayload<E> for $wrapper_type<E> {
             fn block_type() -> BlockType {
                 BlockType::$block_type_variant
@@ -772,6 +818,11 @@ macro_rules! impl_exec_payload_common {
                 let h = $h;
                 h(self)
             }
+
+            fn execution_witness_root(&self) -> Result<Hash256, Error> {
+                let i = $i;
+                i(self)
+            }
         }
 
         impl<E: EthSpec> From<$wrapped_type<E>> for $wrapper_type<E> {
@@ -815,6 +866,14 @@ macro_rules! impl_exec_payload_for_fork {
                     |payload: &$wrapper_type_header<E>| {
                         let wrapper_ref_type = BlindedPayloadRef::$fork_variant(&payload);
                         wrapper_ref_type.blob_gas_used()
+                    };
+                c
+            },
+            {
+                let c: for<'a> fn(&'a $wrapper_type_header<E>) -> Result<Hash256, Error> =
+                    |payload: &$wrapper_type_header<E>| {
+                        let wrapper_ref_type = BlindedPayloadRef::$fork_variant(&payload);
+                        wrapper_ref_type.execution_witness_root()
                     };
                 c
             }
@@ -902,6 +961,14 @@ macro_rules! impl_exec_payload_for_fork {
                     |payload: &$wrapper_type_full<E>| {
                         let wrapper_ref_type = FullPayloadRef::$fork_variant(&payload);
                         wrapper_ref_type.blob_gas_used()
+                    };
+                c
+            },
+            {
+                let c: for<'a> fn(&'a $wrapper_type_full<E>) -> Result<Hash256, Error> =
+                    |payload: &$wrapper_type_full<E>| {
+                        let wrapper_ref_type = FullPayloadRef::$fork_variant(&payload);
+                        wrapper_ref_type.execution_witness_root()
                     };
                 c
             }
