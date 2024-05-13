@@ -51,9 +51,11 @@ pub struct ExecutionBlockHeader {
     pub blob_gas_used: Option<u64>,
     pub excess_blob_gas: Option<u64>,
     pub parent_beacon_block_root: Option<Hash256>,
+    pub execution_witness_root: Option<Hash256>,
 }
 
 impl ExecutionBlockHeader {
+    #[allow(clippy::too_many_arguments)]
     pub fn from_payload<E: EthSpec>(
         payload: ExecutionPayloadRef<E>,
         rlp_empty_list_root: Hash256,
@@ -62,6 +64,7 @@ impl ExecutionBlockHeader {
         rlp_blob_gas_used: Option<u64>,
         rlp_excess_blob_gas: Option<u64>,
         rlp_parent_beacon_block_root: Option<Hash256>,
+        rlp_execution_witness_root: Option<Hash256>,
     ) -> Self {
         // Most of these field mappings are defined in EIP-3675 except for `mixHash`, which is
         // defined in EIP-4399.
@@ -86,6 +89,7 @@ impl ExecutionBlockHeader {
             blob_gas_used: rlp_blob_gas_used,
             excess_blob_gas: rlp_excess_blob_gas,
             parent_beacon_block_root: rlp_parent_beacon_block_root,
+            execution_witness_root: rlp_execution_witness_root,
         }
     }
 }

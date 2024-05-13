@@ -23,7 +23,7 @@ use tree_hash_derive::TreeHash;
 use types::{
     Blob, ChainSpec, EthSpec, ExecutionBlockHash, ExecutionPayload, ExecutionPayloadCapella,
     ExecutionPayloadDeneb, ExecutionPayloadElectra, ExecutionPayloadHeader, ExecutionPayloadMerge,
-    ForkName, Hash256, Transaction, Transactions, Uint256,
+    ExecutionWitness, ForkName, Hash256, Transaction, Transactions, Uint256,
 };
 
 use super::DEFAULT_TERMINAL_BLOCK;
@@ -646,6 +646,7 @@ impl<E: EthSpec> ExecutionBlockGenerator<E> {
                     withdrawals: pa.withdrawals.clone().into(),
                     blob_gas_used: 0,
                     excess_blob_gas: 0,
+                    execution_witness: ExecutionWitness::default(),
                 }),
                 _ => unreachable!(),
             },

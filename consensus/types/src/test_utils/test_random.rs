@@ -87,6 +87,18 @@ where
     }
 }
 
+impl<U> TestRandom for Option<U>
+where
+    U: TestRandom,
+{
+    fn random_for_test(rng: &mut impl RngCore) -> Self {
+        match bool::random_for_test(rng) {
+            false => None,
+            true => Some(U::random_for_test(rng)),
+        }
+    }
+}
+
 impl<T, N: Unsigned> TestRandom for FixedVector<T, N>
 where
     T: TestRandom,
@@ -115,6 +127,13 @@ where
         }
 
         output.into()
+    }
+}
+
+// TODO(mac) Dummy impl
+impl<U: TestRandom> TestRandom for Optional<U> {
+    fn random_for_test(_rng: &mut impl RngCore) -> Self {
+        Self::from(None)
     }
 }
 

@@ -412,9 +412,11 @@ pub fn get_config<E: EthSpec>(
             .map_err(|_| "auto-compact-db takes a boolean".to_string())?;
     }
 
-    if let Some(prune_payloads) = clap_utils::parse_optional(cli_args, "prune-payloads")? {
-        client_config.store.prune_payloads = prune_payloads;
-    }
+    //TODO(mac): Re-enable prune payloads once Geth supports it.
+    client_config.store.prune_payloads = false;
+    //if let Some(prune_payloads) = clap_utils::parse_optional(cli_args, "prune-payloads")? {
+    //    client_config.store.prune_payloads = prune_payloads;
+    //}
 
     if let Some(epochs_per_migration) =
         clap_utils::parse_optional(cli_args, "epochs-per-migration")?
@@ -825,8 +827,9 @@ pub fn get_config<E: EthSpec>(
     }
 
     // Optimistic finalized sync.
-    client_config.chain.optimistic_finalized_sync =
-        !cli_args.is_present("disable-optimistic-finalized-sync");
+    client_config.chain.optimistic_finalized_sync = false;
+    // TODO(mac) remove this once optimistic finalized sync is working.
+    // !cli_args.is_present("disable-optimistic-finalized-sync");
 
     if cli_args.is_present("genesis-backfill") {
         client_config.chain.genesis_backfill = true;

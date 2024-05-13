@@ -41,6 +41,7 @@ pub mod eth_spec;
 pub mod execution_block_hash;
 pub mod execution_payload;
 pub mod execution_payload_header;
+pub mod execution_witness;
 pub mod fork;
 pub mod fork_data;
 pub mod fork_name;
@@ -149,6 +150,7 @@ pub use crate::execution_payload_header::{
     ExecutionPayloadHeaderElectra, ExecutionPayloadHeaderMerge, ExecutionPayloadHeaderRef,
     ExecutionPayloadHeaderRefMut,
 };
+pub use crate::execution_witness::ExecutionWitness;
 pub use crate::fork::Fork;
 pub use crate::fork_context::ForkContext;
 pub use crate::fork_data::ForkData;
@@ -242,5 +244,7 @@ pub use bls::{
 
 pub use kzg::{KzgCommitment, KzgProof, VERSIONED_HASH_VERSION_KZG};
 
-pub use ssz_types::{typenum, typenum::Unsigned, BitList, BitVector, FixedVector, VariableList};
+pub use ssz_types::{
+    typenum, typenum::Unsigned, BitList, BitVector, FixedVector, Optional, VariableList,
+};
 pub use superstruct::superstruct;

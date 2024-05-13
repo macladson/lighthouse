@@ -4,7 +4,15 @@ use strum::EnumString;
 use superstruct::superstruct;
 use types::beacon_block_body::KzgCommitments;
 use types::blob_sidecar::BlobsList;
-use types::{FixedVector, Unsigned};
+use types::{
+    execution_witness::{
+        BanderwagonFieldElement, BanderwagonGroupElement, IpaProof, StateDiff, StateDiffValue,
+        Stem, StemStateDiff, StemValue, SuffixStateDiff, VerkleProof,
+    },
+    ExecutionPayload, ExecutionPayloadCapella, ExecutionPayloadElectra, ExecutionPayloadMerge,
+    ExecutionWitness,
+};
+use types::{FixedVector, Optional, Unsigned, VariableList};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -101,6 +109,9 @@ pub struct JsonExecutionPayload<E: EthSpec> {
     #[superstruct(only(V3, V4))]
     #[serde(with = "serde_utils::u64_hex_be")]
     pub excess_blob_gas: u64,
+    #[superstruct(only(V4))]
+    #[serde(deserialize_with = "serde_execution_witness")]
+    pub execution_witness: JsonExecutionWitness<E>,
 }
 
 impl<E: EthSpec> From<ExecutionPayloadMerge<E>> for JsonExecutionPayloadV1<E> {
@@ -203,6 +214,7 @@ impl<E: EthSpec> From<ExecutionPayloadElectra<E>> for JsonExecutionPayloadV4<E> 
                 .into(),
             blob_gas_used: payload.blob_gas_used,
             excess_blob_gas: payload.excess_blob_gas,
+            execution_witness: payload.execution_witness.into(),
         }
     }
 }
@@ -319,6 +331,7 @@ impl<E: EthSpec> From<JsonExecutionPayloadV4<E>> for ExecutionPayloadElectra<E> 
                 .into(),
             blob_gas_used: payload.blob_gas_used,
             excess_blob_gas: payload.excess_blob_gas,
+            execution_witness: payload.execution_witness.into(),
         }
     }
 }
@@ -691,6 +704,7 @@ pub struct JsonExecutionPayloadBodyV1<E: EthSpec> {
     #[serde(with = "ssz_types::serde_utils::list_of_hex_var_list")]
     pub transactions: Transactions<E>,
     pub withdrawals: Option<VariableList<JsonWithdrawal, E::MaxWithdrawalsPerPayload>>,
+    pub execution_witness: Option<JsonExecutionWitness<E>>,
 }
 
 impl<E: EthSpec> From<JsonExecutionPayloadBodyV1<E>> for ExecutionPayloadBodyV1<E> {
@@ -705,6 +719,7 @@ impl<E: EthSpec> From<JsonExecutionPayloadBodyV1<E>> for ExecutionPayloadBodyV1<
                         .collect::<Vec<_>>(),
                 )
             }),
+            execution_witness: value.execution_witness.map(Into::into),
         }
     }
 }
@@ -745,5 +760,201 @@ pub mod serde_logs_bloom {
 
         FixedVector::new(vec)
             .map_err(|e| serde::de::Error::custom(format!("invalid logs bloom: {:?}", e)))
+    }
+}
+
+pub fn serde_execution_witness<'de, D, T>(deserializer: D) -> Result<T, D::Error>
+where
+    T: Default + Deserialize<'de>,
+    D: serde::Deserializer<'de>,
+{
+    let opt = Option::deserialize(deserializer)?;
+    Ok(opt.unwrap_or_default())
+}
+
+/// Execution Witness JSON types.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(bound = "E: EthSpec", rename_all = "camelCase")]
+pub struct JsonSuffixStateDiff<E: EthSpec> {
+    //#[serde(with = "eth2_serde_utils::quoted_u8")]
+    suffix: u8,
+    // `None` means not currently present.
+    current_value: Optional<StateDiffValue<E>>,
+    // `None` means value is not updated.
+    new_value: Optional<StateDiffValue<E>>,
+}
+
+impl<E: EthSpec> From<JsonSuffixStateDiff<E>> for SuffixStateDiff<E> {
+    fn from(value: JsonSuffixStateDiff<E>) -> Self {
+        Self {
+            suffix: value.suffix,
+            current_value: value.current_value,
+            new_value: value.new_value,
+        }
+    }
+}
+
+impl<E: EthSpec> From<SuffixStateDiff<E>> for JsonSuffixStateDiff<E> {
+    fn from(value: SuffixStateDiff<E>) -> Self {
+        Self {
+            suffix: value.suffix,
+            current_value: value.current_value,
+            new_value: value.new_value,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(bound = "E: EthSpec", rename_all = "camelCase")]
+pub struct JsonStemStateDiff<E: EthSpec> {
+    stem: Stem<E>,
+    suffix_diffs: VariableList<JsonSuffixStateDiff<E>, E::MaxVerkleWidth>,
+}
+
+impl<E: EthSpec> From<JsonStemStateDiff<E>> for StemStateDiff<E> {
+    fn from(value: JsonStemStateDiff<E>) -> Self {
+        Self {
+            stem: value.stem,
+            suffix_diffs: value
+                .suffix_diffs
+                .into_iter()
+                .map(Into::into)
+                .collect::<Vec<_>>()
+                .into(),
+        }
+    }
+}
+
+impl<E: EthSpec> From<StemStateDiff<E>> for JsonStemStateDiff<E> {
+    fn from(value: StemStateDiff<E>) -> Self {
+        Self {
+            stem: value.stem,
+            suffix_diffs: value
+                .suffix_diffs
+                .into_iter()
+                .map(Into::into)
+                .collect::<Vec<_>>()
+                .into(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(bound = "E: EthSpec", rename_all = "camelCase")]
+pub struct JsonIpaProof<E: EthSpec> {
+    cl: FixedVector<BanderwagonGroupElement<E>, E::IpaProofDepth>,
+    cr: FixedVector<BanderwagonGroupElement<E>, E::IpaProofDepth>,
+    final_evaluation: BanderwagonFieldElement<E>,
+}
+
+impl<E: EthSpec> From<JsonIpaProof<E>> for IpaProof<E> {
+    fn from(value: JsonIpaProof<E>) -> Self {
+        Self {
+            cl: value.cl,
+            cr: value.cr,
+            final_evaluation: value.final_evaluation,
+        }
+    }
+}
+
+impl<E: EthSpec> From<IpaProof<E>> for JsonIpaProof<E> {
+    fn from(value: IpaProof<E>) -> Self {
+        Self {
+            cl: value.cl,
+            cr: value.cr,
+            final_evaluation: value.final_evaluation,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(bound = "E: EthSpec", rename_all = "camelCase")]
+pub struct JsonVerkleProof<E: EthSpec> {
+    other_stems: VariableList<StemValue<E>, E::MaxStems>,
+    #[serde(with = "ssz_types::serde_utils::hex_var_list")]
+    depth_extension_present: VariableList<u8, E::MaxStems>,
+    commitments_by_path: VariableList<BanderwagonGroupElement<E>, E::MaxCommittments>,
+    d: BanderwagonGroupElement<E>,
+    ipa_proof: JsonIpaProof<E>,
+}
+
+impl<E: EthSpec> From<JsonVerkleProof<E>> for VerkleProof<E> {
+    fn from(value: JsonVerkleProof<E>) -> Self {
+        Self {
+            other_stems: value.other_stems,
+            depth_extension_present: value.depth_extension_present,
+            commitments_by_path: value.commitments_by_path,
+            d: value.d,
+            ipa_proof: IpaProof::<E>::from(value.ipa_proof),
+        }
+    }
+}
+
+impl<E: EthSpec> From<VerkleProof<E>> for JsonVerkleProof<E> {
+    fn from(value: VerkleProof<E>) -> Self {
+        Self {
+            other_stems: value.other_stems,
+            depth_extension_present: value.depth_extension_present,
+            commitments_by_path: value.commitments_by_path,
+            d: value.d,
+            ipa_proof: JsonIpaProof::<E>::from(value.ipa_proof),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(bound = "E: EthSpec", transparent)]
+pub struct JsonStateDiff<E: EthSpec> {
+    inner: VariableList<JsonStemStateDiff<E>, E::MaxStems>,
+}
+
+impl<E: EthSpec> From<JsonStateDiff<E>> for StateDiff<E> {
+    fn from(value: JsonStateDiff<E>) -> Self {
+        Self {
+            inner: value
+                .inner
+                .into_iter()
+                .map(Into::into)
+                .collect::<Vec<_>>()
+                .into(),
+        }
+    }
+}
+
+impl<E: EthSpec> From<StateDiff<E>> for JsonStateDiff<E> {
+    fn from(value: StateDiff<E>) -> Self {
+        Self {
+            inner: value
+                .inner
+                .into_iter()
+                .map(Into::into)
+                .collect::<Vec<_>>()
+                .into(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(bound = "E: EthSpec", rename_all = "camelCase")]
+pub struct JsonExecutionWitness<E: EthSpec> {
+    state_diff: JsonStateDiff<E>,
+    verkle_proof: JsonVerkleProof<E>,
+}
+
+impl<E: EthSpec> From<JsonExecutionWitness<E>> for ExecutionWitness<E> {
+    fn from(value: JsonExecutionWitness<E>) -> Self {
+        Self {
+            state_diff: StateDiff::<E>::from(value.state_diff),
+            verkle_proof: VerkleProof::<E>::from(value.verkle_proof),
+        }
+    }
+}
+
+impl<E: EthSpec> From<ExecutionWitness<E>> for JsonExecutionWitness<E> {
+    fn from(value: ExecutionWitness<E>) -> Self {
+        Self {
+            state_diff: JsonStateDiff::<E>::from(value.state_diff),
+            verkle_proof: JsonVerkleProof::<E>::from(value.verkle_proof),
+        }
     }
 }
