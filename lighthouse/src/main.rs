@@ -642,7 +642,11 @@ fn run<E: EthSpec>(
     }
 
     if let Some(libp2p_discv5_layer) = libp2p_discv5_layer {
-        logging_layers.push(libp2p_discv5_layer.boxed());
+        logging_layers.push(
+            libp2p_discv5_layer
+                .with_filter(logger_config.logfile_debug_level)
+                .boxed(),
+        );
     }
 
     logging_layers.push(MetricsLayer.boxed());
