@@ -35,14 +35,12 @@ pub const ENGINE_NEW_PAYLOAD_V1: &str = "engine_newPayloadV1";
 pub const ENGINE_NEW_PAYLOAD_V2: &str = "engine_newPayloadV2";
 pub const ENGINE_NEW_PAYLOAD_V3: &str = "engine_newPayloadV3";
 pub const ENGINE_NEW_PAYLOAD_V4: &str = "engine_newPayloadV4";
-pub const ENGINE_NEW_PAYLOAD_V5: &str = "engine_newPayloadV5";
 pub const ENGINE_NEW_PAYLOAD_TIMEOUT: Duration = Duration::from_secs(8);
 
 pub const ENGINE_GET_PAYLOAD_V1: &str = "engine_getPayloadV1";
 pub const ENGINE_GET_PAYLOAD_V2: &str = "engine_getPayloadV2";
 pub const ENGINE_GET_PAYLOAD_V3: &str = "engine_getPayloadV3";
 pub const ENGINE_GET_PAYLOAD_V4: &str = "engine_getPayloadV4";
-pub const ENGINE_GET_PAYLOAD_V5: &str = "engine_getPayloadV5";
 pub const ENGINE_GET_PAYLOAD_TIMEOUT: Duration = Duration::from_secs(2);
 
 pub const ENGINE_FORKCHOICE_UPDATED_V1: &str = "engine_forkchoiceUpdatedV1";
@@ -75,12 +73,10 @@ pub static LIGHTHOUSE_CAPABILITIES: &[&str] = &[
     ENGINE_NEW_PAYLOAD_V2,
     ENGINE_NEW_PAYLOAD_V3,
     ENGINE_NEW_PAYLOAD_V4,
-    ENGINE_NEW_PAYLOAD_V5,
     ENGINE_GET_PAYLOAD_V1,
     ENGINE_GET_PAYLOAD_V2,
     ENGINE_GET_PAYLOAD_V3,
     ENGINE_GET_PAYLOAD_V4,
-    ENGINE_GET_PAYLOAD_V5,
     ENGINE_FORKCHOICE_UPDATED_V1,
     ENGINE_FORKCHOICE_UPDATED_V2,
     ENGINE_FORKCHOICE_UPDATED_V3,
@@ -845,13 +841,12 @@ impl HttpJsonRpc {
         Ok(response.into())
     }
 
-    // TODO(fulu): switch to v5 endpoint when the EL is ready for Fulu
     pub async fn new_payload_v4_fulu<E: EthSpec>(
         &self,
         new_payload_request_fulu: NewPayloadRequestFulu<'_, E>,
     ) -> Result<PayloadStatusV1, Error> {
         let params = json!([
-            JsonExecutionPayload::V5(new_payload_request_fulu.execution_payload.clone().into()),
+            JsonExecutionPayload::V4(new_payload_request_fulu.execution_payload.clone().into()),
             new_payload_request_fulu.versioned_hashes,
             new_payload_request_fulu.parent_beacon_block_root,
             new_payload_request_fulu
@@ -967,7 +962,7 @@ impl HttpJsonRpc {
         let params = json!([JsonPayloadIdRequest::from(payload_id)]);
 
         match fork_name {
-            ForkName::Electra => {
+            ForkName::Electra | ForkName::Fulu => {
                 let response: JsonGetPayloadResponseV4<E> = self
                     .rpc_request(
                         ENGINE_GET_PAYLOAD_V4,
@@ -981,33 +976,6 @@ impl HttpJsonRpc {
             }
             _ => Err(Error::UnsupportedForkVariant(format!(
                 "called get_payload_v4 with {}",
-                fork_name
-            ))),
-        }
-    }
-
-    pub async fn get_payload_v5<E: EthSpec>(
-        &self,
-        fork_name: ForkName,
-        payload_id: PayloadId,
-    ) -> Result<GetPayloadResponse<E>, Error> {
-        let params = json!([JsonPayloadIdRequest::from(payload_id)]);
-
-        match fork_name {
-            ForkName::Fulu => {
-                let response: JsonGetPayloadResponseV5<E> = self
-                    .rpc_request(
-                        ENGINE_GET_PAYLOAD_V5,
-                        params,
-                        ENGINE_GET_PAYLOAD_TIMEOUT * self.execution_timeout_multiplier,
-                    )
-                    .await?;
-                JsonGetPayloadResponse::V5(response)
-                    .try_into()
-                    .map_err(Error::BadResponse)
-            }
-            _ => Err(Error::UnsupportedForkVariant(format!(
-                "called get_payload_v5 with {}",
                 fork_name
             ))),
         }
@@ -1136,7 +1104,6 @@ impl HttpJsonRpc {
             new_payload_v2: capabilities.contains(ENGINE_NEW_PAYLOAD_V2),
             new_payload_v3: capabilities.contains(ENGINE_NEW_PAYLOAD_V3),
             new_payload_v4: capabilities.contains(ENGINE_NEW_PAYLOAD_V4),
-            new_payload_v5: capabilities.contains(ENGINE_NEW_PAYLOAD_V5),
             forkchoice_updated_v1: capabilities.contains(ENGINE_FORKCHOICE_UPDATED_V1),
             forkchoice_updated_v2: capabilities.contains(ENGINE_FORKCHOICE_UPDATED_V2),
             forkchoice_updated_v3: capabilities.contains(ENGINE_FORKCHOICE_UPDATED_V3),
@@ -1148,7 +1115,6 @@ impl HttpJsonRpc {
             get_payload_v2: capabilities.contains(ENGINE_GET_PAYLOAD_V2),
             get_payload_v3: capabilities.contains(ENGINE_GET_PAYLOAD_V3),
             get_payload_v4: capabilities.contains(ENGINE_GET_PAYLOAD_V4),
-            get_payload_v5: capabilities.contains(ENGINE_GET_PAYLOAD_V5),
             get_client_version_v1: capabilities.contains(ENGINE_GET_CLIENT_VERSION_V1),
             get_blobs_v1: capabilities.contains(ENGINE_GET_BLOBS_V1),
             get_blobs_v2: capabilities.contains(ENGINE_GET_BLOBS_V2),
@@ -1285,7 +1251,6 @@ impl HttpJsonRpc {
                 }
             }
             NewPayloadRequest::Fulu(new_payload_request_fulu) => {
-                // TODO(fulu): switch to v5 endpoint when the EL is ready for Fulu
                 if engine_capabilities.new_payload_v4 {
                     self.new_payload_v4_fulu(new_payload_request_fulu).await
                 } else {
@@ -1328,10 +1293,10 @@ impl HttpJsonRpc {
                 }
             }
             ForkName::Fulu => {
-                if engine_capabilities.get_payload_v5 {
-                    self.get_payload_v5(fork_name, payload_id).await
+                if engine_capabilities.get_payload_v4 {
+                    self.get_payload_v4(fork_name, payload_id).await
                 } else {
-                    Err(Error::RequiredMethodUnsupported("engine_getPayloadv5"))
+                    Err(Error::RequiredMethodUnsupported("engine_getPayloadv4"))
                 }
             }
             ForkName::Base | ForkName::Altair => Err(Error::UnsupportedForkVariant(format!(
