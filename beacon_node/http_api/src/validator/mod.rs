@@ -662,10 +662,15 @@ pub fn post_validator_sync_committee_subscriptions<T: BeaconChainTypes>(
             | {
                 task_spawner.blocking_json_task(Priority::P0, move || {
                     for subscription in subscriptions {
-                        chain
-                            .validator_monitor
-                            .write()
-                            .auto_register_local_validator(subscription.validator_index);
+                        // Resolve the pubkey before taking the monitor's write lock.
+                        if let Ok(Some(pubkey)) =
+                            chain.validator_pubkey_bytes(subscription.validator_index as usize)
+                        {
+                            chain
+                                .validator_monitor
+                                .write()
+                                .auto_register_local_validator(subscription.validator_index, pubkey);
+                        }
 
                         let message = ValidatorSubscriptionMessage::SyncCommitteeSubscribe {
                             subscriptions: vec![subscription],
@@ -1138,10 +1143,18 @@ pub fn post_validator_beacon_committee_subscriptions<T: BeaconChainTypes>(
                     let subscriptions: std::collections::BTreeSet<_> = committee_subscriptions
                         .iter()
                         .map(|subscription| {
-                            chain
-                                .validator_monitor
-                                .write()
-                                .auto_register_local_validator(subscription.validator_index);
+                            // Resolve the pubkey before taking the monitor's write lock.
+                            if let Ok(Some(pubkey)) =
+                                chain.validator_pubkey_bytes(subscription.validator_index as usize)
+                            {
+                                chain
+                                    .validator_monitor
+                                    .write()
+                                    .auto_register_local_validator(
+                                        subscription.validator_index,
+                                        pubkey,
+                                    );
+                            }
                             ValidatorSubscription {
                                 attestation_committee_index: subscription.committee_index,
                                 slot: subscription.slot,

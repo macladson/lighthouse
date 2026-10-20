@@ -22,7 +22,7 @@ use std::str::Utf8Error;
 use std::sync::Arc;
 use std::time::Duration;
 use store::AbstractExecPayload;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info};
 use types::consts::altair::{
     TIMELY_HEAD_FLAG_INDEX, TIMELY_SOURCE_FLAG_INDEX, TIMELY_TARGET_FLAG_INDEX,
 };
@@ -388,8 +388,13 @@ struct MissedBlock {
 pub struct ValidatorMonitor<E: EthSpec> {
     /// The validators that require additional monitoring.
     validators: HashMap<PublicKeyBytes, MonitoredValidator>,
-    /// A map of validator index (state.validators) to a validator public key.
+    /// A map of validator index (state.validators) to public key, for monitored validators only.
     indices: HashMap<u64, PublicKeyBytes>,
+    /// The number of registry entries already scanned for monitored validators.
+    indexed_up_to: usize,
+    /// Set when a validator is added without a known index. The next `process_valid_state` then
+    /// scans the whole registry to find it.
+    needs_index_rescan: bool,
     /// If true, allow the automatic registration of validators.
     auto_register: bool,
     /// Once the number of monitored validators goes above this threshold, we
@@ -420,6 +425,8 @@ impl<E: EthSpec> ValidatorMonitor<E> {
         let mut s = Self {
             validators: <_>::default(),
             indices: <_>::default(),
+            indexed_up_to: 0,
+            needs_index_rescan: false,
             auto_register,
             individual_tracking_threshold,
             missed_blocks: <_>::default(),
@@ -441,20 +448,19 @@ impl<E: EthSpec> ValidatorMonitor<E> {
     }
 
     /// Add some validators to `self` for additional monitoring.
+    ///
+    /// The validator's index is looked up on the next call to `process_valid_state`.
     pub fn add_validator_pubkey(&mut self, pubkey: PublicKeyBytes) {
-        let index_opt = self
-            .indices
-            .iter()
-            .find(|(_, candidate_pk)| **candidate_pk == pubkey)
-            .map(|(index, _)| *index);
-
-        self.validators.entry(pubkey).or_insert_with(|| {
-            info!(
-                %pubkey,
-                "Started monitoring validator"
-            );
-            MonitoredValidator::new(pubkey, index_opt)
-        });
+        if self.validators.contains_key(&pubkey) {
+            return;
+        }
+        info!(
+            %pubkey,
+            "Started monitoring validator"
+        );
+        self.validators
+            .insert(pubkey, MonitoredValidator::new(pubkey, None));
+        self.needs_index_rescan = true;
     }
 
     /// Add an unaggregated attestation
@@ -484,17 +490,28 @@ impl<E: EthSpec> ValidatorMonitor<E> {
         state: &BeaconState<E>,
         spec: &ChainSpec,
     ) {
-        // Start after known indices without walking the entire registry. A shorter fork can have
-        // fewer validators than we have already indexed, in which case there is nothing to add.
-        let start_index = self.indices.len();
+        // Look for monitored validators in the part of the registry not yet scanned, or in the
+        // whole registry if a validator was added since the last scan. A shorter fork can have
+        // fewer validators than we have already scanned, in which case there is nothing to add.
+        let start_index = if self.needs_index_rescan {
+            0
+        } else {
+            self.indexed_up_to
+        };
         if let Ok(validators) = state.validators().iter_from(start_index) {
             for (i, validator) in (start_index..).zip(validators) {
-                let i = i as u64;
-                if let Some(validator) = self.validators.get_mut(&validator.pubkey) {
-                    validator.set_index(i)
+                if let Some(monitored_validator) = self.validators.get_mut(&validator.pubkey) {
+                    let i = i as u64;
+                    monitored_validator.set_index(i);
+                    self.indices.insert(i, validator.pubkey);
                 }
-                self.indices.insert(i, validator.pubkey);
             }
+            // A rescan of a shorter fork may have missed validators in the tail, so keep the
+            // flag set until a state covering the whole scanned range has been seen.
+            if state.validators().len() >= self.indexed_up_to {
+                self.needs_index_rescan = false;
+            }
+            self.indexed_up_to = self.indexed_up_to.max(state.validators().len());
         }
 
         // Add missed non-finalized blocks for the monitored validators
@@ -642,35 +659,32 @@ impl<E: EthSpec> ValidatorMonitor<E> {
                             .and_then(|(proposers, _)| proposers.get(slot_in_epoch.as_usize()))
                         {
                             let i = *proposer_index as u64;
-                            if let Some(pub_key) = self.indices.get(&i) {
-                                if let Some(validator) = self.validators.get(pub_key) {
-                                    let missed_block = MissedBlock {
-                                        slot,
-                                        parent_root: *prev_block_root,
-                                        validator_index: i,
-                                    };
-                                    // Incr missed block counter for the validator only if it doesn't already exist in the hashset
-                                    if self.missed_blocks.insert(missed_block) {
-                                        self.aggregatable_metric(&validator.id, |label| {
-                                            metrics::inc_counter_vec(
-                                                &metrics::VALIDATOR_MONITOR_MISSED_BLOCKS_TOTAL,
-                                                &[label],
-                                            );
-                                        });
-                                        error!(
-                                            index = i,
-                                            %slot,
-                                            ?prev_block_root,
-                                            "Validator missed a block"
+                            // Only monitored validators are indexed, so a missing index is normal.
+                            if let Some(validator) = self
+                                .indices
+                                .get(&i)
+                                .and_then(|pub_key| self.validators.get(pub_key))
+                            {
+                                let missed_block = MissedBlock {
+                                    slot,
+                                    parent_root: *prev_block_root,
+                                    validator_index: i,
+                                };
+                                // Incr missed block counter for the validator only if it doesn't already exist in the hashset
+                                if self.missed_blocks.insert(missed_block) {
+                                    self.aggregatable_metric(&validator.id, |label| {
+                                        metrics::inc_counter_vec(
+                                            &metrics::VALIDATOR_MONITOR_MISSED_BLOCKS_TOTAL,
+                                            &[label],
                                         );
-                                    }
+                                    });
+                                    error!(
+                                        index = i,
+                                        %slot,
+                                        ?prev_block_root,
+                                        "Validator missed a block"
+                                    );
                                 }
-                            } else {
-                                warn!(
-                                    info = "potentially inconsistency in the validator manager",
-                                    index = i,
-                                    "Missing validator index"
-                                )
                             }
                         } else {
                             debug!(
@@ -1099,27 +1113,31 @@ impl<E: EthSpec> ValidatorMonitor<E> {
         self.beacon_proposer_cache.clone()
     }
 
-    /// If `self.auto_register == true`, add the `validator_index` to `self.monitored_validators`.
-    /// Otherwise, do nothing.
-    pub fn auto_register_local_validator(&mut self, validator_index: u64) {
+    /// If `self.auto_register == true`, add the validator to `self.validators`. Otherwise, do
+    /// nothing.
+    ///
+    /// The caller must resolve `pubkey` for `validator_index`, as the monitor only knows the
+    /// pubkeys of validators it already monitors.
+    pub fn auto_register_local_validator(&mut self, validator_index: u64, pubkey: PublicKeyBytes) {
         if !self.auto_register {
             return;
         }
 
-        if let Some(pubkey) = self.indices.get(&validator_index)
-            && !self.validators.contains_key(pubkey)
-        {
+        if let Some(validator) = self.validators.get_mut(&pubkey) {
+            // Already monitored. The index may still be unknown if it was added by pubkey.
+            validator.set_index(validator_index);
+        } else {
             info!(
                 %pubkey,
                 validator = %validator_index,
                 "Started monitoring validator"
             );
-
             self.validators.insert(
-                *pubkey,
-                MonitoredValidator::new(*pubkey, Some(validator_index)),
+                pubkey,
+                MonitoredValidator::new(pubkey, Some(validator_index)),
             );
         }
+        self.indices.insert(validator_index, pubkey);
     }
 
     /// Process a block received on gossip.
@@ -2175,7 +2193,7 @@ mod tests {
     #[test]
     fn registry_indices_across_growth_and_shorter_forks() {
         type E = Spec;
-        let keypairs = generate_deterministic_keypairs(33);
+        let keypairs = generate_deterministic_keypairs(34);
 
         for fork in [ForkName::Base, ForkName::Gloas] {
             let spec = fork.make_genesis_spec(E::default_spec());
@@ -2193,18 +2211,23 @@ mod tests {
             assert_eq!(monitor.num_validators(), 0);
             monitor.process_valid_state(Epoch::new(0), &state, &spec);
             assert!(monitor.indices.is_empty());
+            assert_eq!(monitor.indexed_up_to, 0);
 
+            // Unmonitored validators are scanned but not indexed.
             for validator in &validators[..32] {
                 state.validators_mut().push(validator.clone()).unwrap();
             }
             state.validators_mut().apply_updates().unwrap();
             monitor.process_valid_state(Epoch::new(0), &state, &spec);
-            assert_eq!(monitor.indices.len(), 32);
+            assert!(monitor.indices.is_empty());
+            assert_eq!(monitor.indexed_up_to, 32);
             assert_eq!(monitor.num_validators(), 0);
 
+            // Validators added after a scan are found by rescanning on the next state.
             monitor.add_validator_pubkey(validators[31].pubkey);
             monitor.add_validator_pubkey(validators[32].pubkey);
-            assert_eq!(monitor.validators[&validators[31].pubkey].index, Some(31));
+            assert!(monitor.needs_index_rescan);
+            assert_eq!(monitor.validators[&validators[31].pubkey].index, None);
             assert_eq!(monitor.validators[&validators[32].pubkey].index, None);
             let mut shorter_state = state.clone();
 
@@ -2213,11 +2236,13 @@ mod tests {
             state.validators_mut().get_mut(32).unwrap().pubkey = validators[32].pubkey;
             assert!(state.validators().has_pending_updates());
             monitor.process_valid_state(Epoch::new(0), &state, &spec);
+            assert!(!monitor.needs_index_rescan);
+            assert_eq!(monitor.indexed_up_to, 33);
+            assert_eq!(monitor.validators[&validators[31].pubkey].index, Some(31));
             assert_eq!(monitor.validators[&validators[32].pubkey].index, Some(32));
-            let expected_indices = validators
-                .iter()
-                .enumerate()
-                .map(|(i, validator)| (i as u64, validator.pubkey))
+            let expected_indices = [31, 32]
+                .into_iter()
+                .map(|i| (i as u64, validators[i].pubkey))
                 .collect::<HashMap<_, _>>();
             assert_eq!(monitor.indices, expected_indices);
 
@@ -2225,6 +2250,7 @@ mod tests {
             *shorter_state.balances_mut().get_mut(31).unwrap() = 123;
             monitor.process_valid_state(Epoch::new(0), &shorter_state, &spec);
             assert_eq!(monitor.indices, expected_indices);
+            assert_eq!(monitor.indexed_up_to, 33);
             assert_eq!(
                 monitor.validators[&validators[31].pubkey].get_total_balance(Epoch::new(0)),
                 Some(123)
@@ -2237,6 +2263,55 @@ mod tests {
                 monitor.validators[&validators[31].pubkey].get_total_balance(Epoch::new(0)),
                 state.balances().get(31).copied()
             );
+
+            // A rescan on a shorter fork keeps the rescan pending until a state covering the
+            // whole scanned range is seen.
+            monitor.add_validator_pubkey(validators[33].pubkey);
+            monitor.process_valid_state(Epoch::new(0), &shorter_state, &spec);
+            assert!(monitor.needs_index_rescan);
+            assert_eq!(monitor.validators[&validators[33].pubkey].index, None);
+            state.validators_mut().push(validators[33].clone()).unwrap();
+            state.validators_mut().apply_updates().unwrap();
+            monitor.process_valid_state(Epoch::new(0), &state, &spec);
+            assert!(!monitor.needs_index_rescan);
+            assert_eq!(monitor.indexed_up_to, 34);
+            assert_eq!(monitor.validators[&validators[33].pubkey].index, Some(33));
+            assert_eq!(monitor.indices.len(), 3);
         }
+    }
+
+    #[test]
+    fn auto_register_indexes_the_validator() {
+        let pubkey = generate_deterministic_keypairs(1)[0].pk.compress();
+        let new_monitor = |auto_register| {
+            ValidatorMonitor::<Spec>::new(
+                ValidatorMonitorConfig {
+                    auto_register,
+                    ..ValidatorMonitorConfig::default()
+                },
+                Arc::new(Mutex::new(BeaconProposerCache::default())),
+            )
+        };
+
+        let mut monitor = new_monitor(false);
+        monitor.auto_register_local_validator(7, pubkey);
+        assert_eq!(monitor.num_validators(), 0);
+        assert!(monitor.indices.is_empty());
+
+        let mut monitor = new_monitor(true);
+        monitor.auto_register_local_validator(7, pubkey);
+        monitor.auto_register_local_validator(7, pubkey);
+        assert_eq!(monitor.num_validators(), 1);
+        assert_eq!(monitor.get_monitored_validator(7).unwrap().index, Some(7));
+        assert!(monitor.get_monitored_validator(8).is_none());
+        assert!(!monitor.needs_index_rescan);
+
+        // Auto-registration resolves the index of a validator added by pubkey.
+        let mut monitor = new_monitor(true);
+        monitor.add_validator_pubkey(pubkey);
+        assert_eq!(monitor.validators[&pubkey].index, None);
+        monitor.auto_register_local_validator(7, pubkey);
+        assert_eq!(monitor.num_validators(), 1);
+        assert_eq!(monitor.get_monitored_validator(7).unwrap().index, Some(7));
     }
 }
