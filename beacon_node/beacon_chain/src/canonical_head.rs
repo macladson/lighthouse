@@ -1205,18 +1205,22 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
 
         // Only run on head *block* changes - payload status changes only need the
         // `cached_head` update above, not re-org detection or event emission.
-        if new_snapshot.beacon_block_root != old_snapshot.beacon_block_root
-            && let Err(e) = self.after_new_head(
+        let mut persist_fork_choice = false;
+        if new_snapshot.beacon_block_root != old_snapshot.beacon_block_root {
+            match self.after_new_head(
                 &old_cached_head,
                 &new_cached_head,
                 new_head_proto_block,
                 new_head_verdict,
-            )
-        {
-            crit!(
-                error = ?e,
-                "Error updating canonical head"
-            );
+            ) {
+                Ok(should_persist) => persist_fork_choice = should_persist,
+                Err(e) => {
+                    crit!(
+                        error = ?e,
+                        "Error updating canonical head"
+                    );
+                }
+            }
         }
 
         // Emit a second head_v2 event for the same slot when the payload status changes from Empty to Full
@@ -1273,10 +1277,19 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
         // Drop the old cache head nice and early to try and free the memory as soon as possible.
         drop(old_cached_head);
 
-        // If the finalized checkpoint changed, perform some updates.
+        // The execution layer updates and `after_finalization` may both take a write-lock on fork
+        // choice, so no fork choice lock is held here.
         //
-        // The `after_finalization` function will take a write-lock on `fork_choice`, therefore it
-        // is a dead-lock risk to hold any other lock on fork choice at this point.
+        // Spawn the execution layer updates first: `after_finalization` persists fork choice,
+        // which takes hundreds of milliseconds and would delay the fcU that tells the EL about the
+        // new finalized block. The updates don't depend on anything `after_finalization` does.
+        let el_update_result = spawn_execution_layer_updates(
+            self.clone(),
+            new_forkchoice_update_parameters,
+            new_payload_status,
+        );
+
+        // If the finalized checkpoint changed, perform some updates.
         if new_view.finalized_checkpoint != old_view.finalized_checkpoint
             && let Err(e) = self.after_finalization(
                 &new_cached_head,
@@ -1291,19 +1304,20 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
             );
         }
 
-        // The execution layer updates might attempt to take a write-lock on fork choice, so it's
-        // important to ensure the fork-choice lock isn't being held.
-        let el_update_handle = spawn_execution_layer_updates(
-            self.clone(),
-            new_forkchoice_update_parameters,
-            new_payload_status,
-        )?;
+        // Persist fork choice after spawning the EL updates so that encoding it doesn't delay
+        // them. Holding `recompute_head_lock` keeps persists from different heads in order.
+        if persist_fork_choice && let Err(e) = self.persist_fork_choice() {
+            crit!(
+                error = ?e,
+                "Error persisting fork choice"
+            );
+        }
 
         // We have completed recomputing the head and it's now valid for another process to do the
         // same.
         drop(recompute_head_lock);
 
-        Ok(Some(el_update_handle))
+        Ok(Some(el_update_result?))
     }
 
     fn run_fcr(
@@ -1495,6 +1509,8 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
     }
 
     /// Perform updates to caches and other components after the canonical head has been changed.
+    ///
+    /// Returns `true` if fork choice should be persisted.
     #[instrument(skip_all)]
     fn after_new_head(
         self: &Arc<Self>,
@@ -1502,7 +1518,7 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
         new_cached_head: &CachedHead<T::EthSpec>,
         new_head_proto_block: ProtoBlock,
         new_head_verdict: ExecutionVerdict,
-    ) -> Result<(), Error> {
+    ) -> Result<bool, Error> {
         let _timer = metrics::start_timer(&metrics::FORK_CHOICE_AFTER_NEW_HEAD_TIMES);
         let old_snapshot = &old_cached_head.snapshot;
         let new_snapshot = &new_cached_head.snapshot;
@@ -1561,8 +1577,8 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
             &self.spec,
         );
 
-        if is_epoch_transition || reorg_distance.is_some() {
-            self.persist_fork_choice()?;
+        let persist_fork_choice = is_epoch_transition || reorg_distance.is_some();
+        if persist_fork_choice {
             self.op_pool.prune_attestations(self.epoch()?);
         }
 
@@ -1585,7 +1601,7 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
             }));
         }
 
-        Ok(())
+        Ok(persist_fork_choice)
     }
 
     /// Perform updates to caches and other components after the finalized checkpoint has been
@@ -1769,11 +1785,12 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
 
     /// Return a database operation for writing fork choice to disk.
     pub fn persist_fork_choice_in_batch(&self) -> Result<KeyValueStoreOp, Error> {
-        Self::persist_fork_choice_in_batch_standalone(
-            &self.canonical_head.fork_choice_read_lock(),
-            self.store.get_config(),
-        )
-        .map_err(Into::into)
+        // Only hold the fork choice lock while copying, not while encoding and compressing.
+        let persisted_fork_choice =
+            Self::to_persisted_fork_choice(&self.canonical_head.fork_choice_read_lock());
+        persisted_fork_choice
+            .as_kv_store_op(FORK_CHOICE_DB_KEY, self.store.get_config())
+            .map_err(Into::into)
     }
 
     /// Return a database operation for writing fork choice to disk.
@@ -1781,11 +1798,14 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
         fork_choice: &BeaconForkChoice<T>,
         store_config: &StoreConfig,
     ) -> Result<KeyValueStoreOp, StoreError> {
-        let persisted_fork_choice = PersistedForkChoice {
+        Self::to_persisted_fork_choice(fork_choice).as_kv_store_op(FORK_CHOICE_DB_KEY, store_config)
+    }
+
+    fn to_persisted_fork_choice(fork_choice: &BeaconForkChoice<T>) -> PersistedForkChoice {
+        PersistedForkChoice {
             fork_choice: fork_choice.to_persisted(),
             fork_choice_store: fork_choice.fc_store().to_persisted(),
-        };
-        persisted_fork_choice.as_kv_store_op(FORK_CHOICE_DB_KEY, store_config)
+        }
     }
 }
 
